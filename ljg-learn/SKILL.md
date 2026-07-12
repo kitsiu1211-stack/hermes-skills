@@ -83,3 +83,22 @@ date: [YYYY-MM-DD]
    - 卡片内容：压缩层的公式 + 一句话 + 结构图。完整八刀解剖留给 Obsidian。
    - 卡片 JSON 通过 `execute_code` 调用 `feishu-cli exec im.v1.message.create` 发送，参考 `feishu-api` skill 的「Shell escaping trap」专用模式。`receive_id` 用 `ou_dc055b0b5b0b5db2b1af5e79c0536db6`，`receive_id_type` 用 `open_id`。
 4. 告知用户卡片已推送 + Obsidian 文件路径。
+
+## 质检：Generator → Evaluator（强制）
+
+本 Skill 产出用户可见内容，**必须经过 Evaluator 独立评分后才能交付**。
+
+### 身份切换
+- **Generator**：执行八维解剖，生成完整输出。完成后切换身份。
+- **Evaluator**：以审查者视角审视。你不是生成者，你的唯一目标是挑毛病。
+
+### 三维度评分
+
+| 维度 | 满分 | 阈值 | 检查要点 |
+|------|------|------|---------|
+| **八维覆盖完整性** | 10 | ≥7 | 八个维度是否都真实展开了？有没有某个维度只写了一句话敷衍？ |
+| **顿悟质量** | 10 | ≥7 | 压缩层的公式是否真的揭示本质？一句话是否有力、不空洞？ |
+| **中文母语感** | 10 | ≥7 | 口语化、无翻译腔、无 AI 八股。读起来像人写的？ |
+
+### 执行流程
+Generator → Evaluator 评分 → 全部≥7交付 / 任一<7修正重评（最多3轮）。禁止 Generator 自评、跳过 Evaluator、总分掩盖单项不及格。

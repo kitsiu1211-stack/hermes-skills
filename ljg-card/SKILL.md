@@ -109,3 +109,16 @@ Read `references/mode-whiteboard.md`，按其步骤执行。
 Read `references/mode-big.md`，按其步骤执行。
 
 模板：`assets/big_template.html`
+
+## 质检：Generator → Evaluator（强制）
+
+本 Skill 产出视觉文件（PNG），**必须经过 Evaluator 独立审核后才能交付**。
+
+### 三维度评分
+| 维度 | 阈值 | 检查要点 |
+|------|------|---------|
+| **信息完整性** | ≥7 | 关键信息是否都在卡上？有没有遗漏原文核心？ |
+| **视觉品味** | ≥7 | 符合 taste.md 约束？无 AI 紫蓝、无三等分卡片、无 Inter 字体？ |
+| **可读性** | ≥7 | 手机端缩放后文字可读？层级清晰？ |
+
+Generator→Evaluator→全部≥7交付/修正重生成（最多3轮）。禁止自评。
