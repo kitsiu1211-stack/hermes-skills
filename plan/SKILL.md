@@ -336,3 +336,15 @@ Frequent commits
 ```
 
 **A good plan makes implementation obvious.**
+
+## 质检：Generator → Evaluator（强制）
+
+本 Skill 产出执行计划文档，**必须经过 Evaluator 独立评分后才能交付**。
+
+| 维度 | 阈值 | 检查要点 |
+|------|------|---------|
+| **任务粒度** | ≥7 | 每个 task 是否 bite-sized？有没有一个 task 实际包含多件事？ |
+| **依赖明确性** | ≥7 | 每个 task 的依赖是否标注？执行顺序是否合理？ |
+| **可验证性** | ≥7 | 每个 task 是否能独立验证完成？还是依赖后续 task 才知道对不对？ |
+
+Generator→Evaluator→全部≥7交付/修正重评（最多3轮）。禁止自评。

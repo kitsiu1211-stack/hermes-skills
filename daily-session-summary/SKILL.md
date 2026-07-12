@@ -94,3 +94,15 @@ If no substantive conversations happened today, send a brief note:
 - Don't include every tiny interaction — only substantive discussions matter
 - If session content is very long, sample key excerpts rather than trying to read everything
 - Use `feishu-cli exec im.v1.message.create` (NOT MCP tools) for sending cards
+
+## 质检：Generator → Evaluator（强制）
+
+本 Skill 产出每日摘要卡片，**必须经过 Evaluator 独立评分后才能交付**。
+
+| 维度 | 阈值 | 检查要点 |
+|------|------|---------|
+| **关键决策覆盖** | ≥7 | 是否覆盖了当天所有实质性对话？有无遗漏重要决策？ |
+| **待办可操作性** | ≥7 | 待办事项是否具体可执行？还是「跟进XX」式空泛？ |
+| **简洁度** | ≥7 | 卡片是否精炼？有无冗余信息或无意义的交互记录？ |
+
+Generator→Evaluator→全部≥7交付/修正重评（最多3轮）。禁止自评。
