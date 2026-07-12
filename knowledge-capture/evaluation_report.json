@@ -1,0 +1,12 @@
+{
+  "total_score": 100,
+  "dimension_scores": {
+    "accuracy": 25,
+    "completeness": 50,
+    "usability": 25
+  },
+  "errors": [],
+  "warnings": [],
+  "conclusion": "✅ 通过",
+  "action": "执行双轨写入"
+}
