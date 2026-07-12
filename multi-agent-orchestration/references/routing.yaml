@@ -1,0 +1,122 @@
+# Deterministic Routing Table — check FIRST before LLM routing
+# Inspired by MS Conductor (2026.5): for known workflows, deterministic routing
+# is cheaper, faster, and more predictable than LLM-based dynamic planning.
+#
+# The orchestrator MUST match against these patterns before falling back to
+# LLM reasoning. When a match is found, follow the stage chain exactly.
+
+patterns:
+  # ── Research Pipeline (most common pattern) ──
+  research_pipeline:
+    trigger_keywords:
+      - 调研
+      - 市场研究
+      - 竞争分析
+      - 技术调研
+      - 行业分析
+      - 定价
+      - market research
+      - competitive analysis
+    flow: sequential
+    skill: three-stage-pipeline
+    stages:
+      - agent: search_agent
+        model: deepseek-v4-flash
+        toolsets: [web, terminal, file]
+        max_iterations: 50
+        output: search deliverable → ~/workspace/agents/search/outputs/
+
+      - agent: analyst_agent
+        model: deepseek-v4-pro
+        toolsets: [file, web]
+        input_from: search_agent
+        output: analysis → ~/workspace/agents/analyst/outputs/
+
+      - agent: qa_agent
+        model: deepseek-v4-pro
+        toolsets: [file]
+        input_from: [search_agent, analyst_agent]
+        output: QA report → ~/workspace/agents/qa/outputs/
+
+  # ── Code/Development Tasks ──
+  code_task:
+    trigger_keywords:
+      - 写代码
+      - 搭
+      - 建
+      - 实现
+      - 开发
+      - feature
+      - implement
+      - build
+    flow: single
+    stages:
+      - agent: external_cli
+        skill: claude-code  # primary; fallback: codex
+        action: terminal with claude -p or codex exec
+        note: requires git repo init first
+
+  # ── Feishu Card Generation ──
+  feishu_card:
+    trigger_keywords:
+      - 发卡片
+      - 飞书卡片
+      - 卡片格式
+    flow: single
+    stages:
+      - agent: hermes_self
+        model: deepseek-v4-flash
+        action: format content as Feishu interactive card, send via feishu-cli
+
+  # ── Knowledge Capture ──
+  knowledge_capture:
+    trigger_keywords:
+      - 写入
+      - 记下来
+      - 写进Obsidian
+      - 写进 Obsidian
+    flow: single
+    stages:
+      - agent: hermes_self
+        model: deepseek-v4-pro
+        skill: knowledge-capture
+        action: evaluate → write to Obsidian concepts/
+
+  # ── Group Chat Bot Routing ──
+  group_bot_routing:
+    trigger_keywords:
+      - "@Aime"
+      - "@马斯克"
+      - "@n8n"
+    flow: single
+    stages:
+      - agent: group_bot
+        action: "@mention the target bot with task context, collect reply, quality-check"
+
+  # ── Cron-driven Workflows (not user-triggered) ──
+  cron_cognitive:
+    cron_job: 3a456f2fcccb
+    flow: standalone
+    note: Daily cognitive dialogue — obsidian → generate → deliver
+
+  cron_weekly_review:
+    cron_job: 38603666df9f
+    flow: standalone
+    note: Weekly self-review — audit → review → learn → optimize
+
+  cron_daily_summary:
+    cron_job: d80ae70d914b
+    flow: standalone
+    note: Daily session summary — session_search → summarize → deliver
+
+  cron_weekly_deep_read:
+    cron_job: 69c0e48d7772
+    flow: standalone
+    note: Weekly book recommendation — obsidian + weread → recommend
+
+# ── Default Fallback ──
+# If no pattern matches, fall back to LLM-based routing:
+# 1. Analyze task type
+# 2. Match to available agents (codex, claude, search, group bots)
+# 3. Decompose into subtasks
+# 4. Execute in parallel where possible
