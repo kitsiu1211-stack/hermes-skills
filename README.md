@@ -21,6 +21,8 @@
 |-------|------|
 | `systematic-debugging` | 四阶段根因调试法 — 先理解 Bug 再动手 |
 | `test-driven-development` | TDD 红绿重构 — 测试先行 |
+| `diverge-converge` | 扩散收敛法 — 双钻模型 Agent 版，模糊想法逼近可实施方案 |
+| `grill-with-docs` | 追问式需求澄清 — 一次一问带置信度，diverge-converge 和 loop 共用追问内核 |
 | `plan` | Plan 模式 — 模糊需求拆成 bite-sized 任务清单 |
 | `spike` | Spike 探路 — 一次性快速实验验证技术方案 |
 | `simplify-code` | 三 Agent 并行代码清理 — 安全 + 简化 + 测试 |
