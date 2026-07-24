@@ -1,0 +1,200 @@
+/* === Apple Design Tokens ===
+ * Based on Apple Human Interface Guidelines (iOS/macOS)
+ * Generated for AI agent consumption — concrete values, not adjectives.
+ * Usage: import this file, reference ALL visual properties via CSS variables.
+ * Never hardcode color/spacing/radius/font values in component CSS.
+ */
+
+:root {
+  /* ========== COLOR SYSTEM ========== */
+  /* Light mode — iOS system colors */
+  
+  /* Backgrounds */
+  --apple-bg-primary:       #F2F2F7;   /* systemGroupedBackground */
+  --apple-bg-secondary:     #FFFFFF;   /* systemBackground (cards) */
+  --apple-bg-tertiary:      #F2F2F7;   /* systemGroupedBackground */
+  --apple-bg-quaternary:    #E5E5EA;   /* systemFill (grouped rows) */
+  
+  /* Labels / Text */
+  --apple-text-primary:     #1D1D1F;   /* label */
+  --apple-text-secondary:   #6E6E73;   /* secondaryLabel */
+  --apple-text-tertiary:    #AEAEB2;   /* tertiaryLabel */
+  --apple-text-quaternary:  #C7C7CC;   /* quaternaryLabel */
+  --apple-text-placeholder: #C7C7CC;   /* placeholderText */
+  
+  /* Separators */
+  --apple-separator:        #E5E5EA;   /* separator (opaque) */
+  --apple-separator-opaque: #C6C6C8;   /* opaqueSeparator */
+  
+  /* System Colors (tint) */
+  --apple-blue:             #007AFF;   /* systemBlue */
+  --apple-green:            #34C759;   /* systemGreen */
+  --apple-red:              #FF3B30;   /* systemRed */
+  --apple-orange:           #FF9500;   /* systemOrange */
+  --apple-yellow:           #FFCC00;   /* systemYellow */
+  --apple-purple:           #AF52DE;   /* systemPurple */
+  --apple-pink:             #FF2D55;   /* systemPink */
+  --apple-teal:             #5AC8FA;   /* systemTeal */
+  --apple-indigo:           #5856D6;   /* systemIndigo */
+  
+  /* Fill colors */
+  --apple-fill-primary:     rgba(120, 120, 128, 0.2);   /* systemFill */
+  --apple-fill-secondary:   rgba(120, 120, 128, 0.16);  /* secondarySystemFill */
+  --apple-fill-tertiary:    rgba(120, 120, 128, 0.12);  /* tertiarySystemFill */
+  --apple-fill-quaternary:  rgba(120, 120, 128, 0.08);  /* quaternarySystemFill */
+  
+  /* Grouped backgrounds (for lists/menus) */
+  --apple-grouped-bg:         #F2F2F7;
+  --apple-grouped-bg-secondary: #FFFFFF;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Backgrounds */
+    --apple-bg-primary:       #000000;
+    --apple-bg-secondary:     #1C1C1E;
+    --apple-bg-tertiary:      #2C2C2E;
+    --apple-bg-quaternary:    #3A3A3C;
+    
+    /* Labels / Text */
+    --apple-text-primary:     #FFFFFF;
+    --apple-text-secondary:   #AEAEB2;
+    --apple-text-tertiary:    #6E6E73;
+    --apple-text-quaternary:  #48484A;
+    --apple-text-placeholder: #48484A;
+    
+    /* Separators */
+    --apple-separator:        #38383A;
+    --apple-separator-opaque: #545458;
+    
+    /* Fill colors */
+    --apple-fill-primary:     rgba(120, 120, 128, 0.36);
+    --apple-fill-secondary:   rgba(120, 120, 128, 0.32);
+    --apple-fill-tertiary:    rgba(120, 120, 128, 0.24);
+    --apple-fill-quaternary:  rgba(120, 120, 128, 0.18);
+    
+    --apple-grouped-bg:         #000000;
+    --apple-grouped-bg-secondary: #1C1C1E;
+  }
+}
+
+:root {
+  /* ========== SPACING SCALE ========== */
+  /* 4px base unit. Apple uses these consistently in native UI. */
+  --apple-spacing-xxs:  4px;
+  --apple-spacing-xs:   8px;
+  --apple-spacing-sm:   12px;
+  --apple-spacing-md:   16px;    /* Standard padding */
+  --apple-spacing-lg:   20px;    /* Section margins on iPhone */
+  --apple-spacing-xl:   24px;
+  --apple-spacing-xxl:  32px;    /* Large section gutters */
+  --apple-spacing-xxxl: 40px;
+  
+  /* Navigation bar / toolbar heights */
+  --apple-navbar-height:       44px;   /* Standard navbar */
+  --apple-toolbar-height:      49px;   /* Tab bar */
+  --apple-searchbar-height:    36px;
+  
+  /* ========== BORDER RADIUS ========== */
+  --apple-radius-sm:     6px;    /* Small controls: badges, chips */
+  --apple-radius-md:     8px;    /* Buttons, small cards */
+  --apple-radius-lg:    13px;    /* Standard cards, alerts (continuous corner) */
+  --apple-radius-xl:    20px;    /* Large panels, sheets */
+  --apple-radius-xxl:   26px;    /* Modal sheets (top corners only typically) */
+  --apple-radius-full:  9999px;  /* Pills, circular elements */
+  
+  /* ========== SHADOWS ========== */
+  /* Apple uses layered, subtle shadows with no hard edges */
+  --apple-shadow-sm:    0 1px 3px  rgba(0, 0, 0, 0.06);
+  --apple-shadow-md:    0 4px 12px rgba(0, 0, 0, 0.08);
+  --apple-shadow-lg:    0 8px 32px rgba(0, 0, 0, 0.12);
+  --apple-shadow-xl:    0 16px 48px rgba(0, 0, 0, 0.16);
+  --apple-shadow-nav:   0 0.5px 0   rgba(0, 0, 0, 0.15);  /* Navbar hairline */
+  
+  /* ========== TYPOGRAPHY ========== */
+  /* System font stack — always prefer this over custom fonts */
+  --apple-font-family:  -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+  --apple-font-mono:    "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+  
+  /* Font sizes (iOS Dynamic Type scale) */
+  --apple-font-large-title:  34px;
+  --apple-font-title-1:      28px;
+  --apple-font-title-2:      22px;
+  --apple-font-title-3:      20px;
+  --apple-font-headline:     17px;   /* Semi-bold */
+  --apple-font-body:         15px;   /* Regular — primary reading size */
+  --apple-font-callout:      14px;
+  --apple-font-subhead:      13px;
+  --apple-font-footnote:     12px;
+  --apple-font-caption-1:    11px;
+  --apple-font-caption-2:    10px;
+  
+  /* Line heights (leading) */
+  --apple-leading-large-title: 41px;
+  --apple-leading-title-1:     34px;
+  --apple-leading-title-2:     28px;
+  --apple-leading-title-3:     25px;
+  --apple-leading-headline:    22px;
+  --apple-leading-body:        20px;
+  --apple-leading-callout:     19px;
+  --apple-leading-subhead:     18px;
+  --apple-leading-footnote:    16px;
+  --apple-leading-caption-1:   13px;
+  --apple-leading-caption-2:   13px;
+  
+  /* Font weights */
+  --apple-weight-regular:   400;
+  --apple-weight-medium:    500;
+  --apple-weight-semibold:  590;   /* SF Pro Display semibold */
+  --apple-weight-bold:      700;
+  
+  /* Tracking (letter-spacing) — negative for large text, zero for body */
+  --apple-tracking-large-title: -0.01em;
+  --apple-tracking-headline:     0;
+  --apple-tracking-body:         0;
+  --apple-tracking-caption:    0.01em;
+
+  /* ========== MATERIALS (blur/translucency) ========== */
+  --apple-material-light:     rgba(255, 255, 255, 0.7);
+  --apple-material-dark:      rgba(30, 30, 32, 0.7);
+  --apple-material-ultrathin: rgba(255, 255, 255, 0.4);
+  --apple-material-blur:      blur(20px) saturate(180%);
+  --apple-material-blur-thin: blur(10px) saturate(150%);
+  
+  /* ========== ANIMATION ========== */
+  --apple-spring-default:   cubic-bezier(0.25, 0.1, 0.25, 1);  /* ease */
+  --apple-spring-smooth:    cubic-bezier(0.42, 0, 0.58, 1);    /* ease-in-out */
+  --apple-spring-snappy:    cubic-bezier(0.22, 1, 0.36, 1);    /* Apple default spring */
+  --apple-duration-fast:    150ms;
+  --apple-duration-normal:  250ms;
+  --apple-duration-slow:    350ms;
+  
+  /* ========== OPACITY STATES ========== */
+  --apple-opacity-disabled: 0.4;
+  --apple-opacity-hover:    0.07;   /* Light hover tint */
+  --apple-opacity-pressed:  0.12;   /* Pressed state tint */
+  
+  /* ========== BORDERS ========== */
+  --apple-border-width-hairline: 0.5px;
+  --apple-border-width-thin:     1px;
+  --apple-border-color:          var(--apple-separator);
+}
+
+/* ========== UTILITY: Reduced Motion ========== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --apple-duration-fast:   0ms;
+    --apple-duration-normal: 0ms;
+    --apple-duration-slow:   0ms;
+    --apple-spring-snappy:   step-end;
+  }
+}
+
+/* ========== UTILITY: Increased Contrast ========== */
+@media (prefers-contrast: more) {
+  :root {
+    --apple-separator:        #8E8E93;
+    --apple-fill-primary:     rgba(120, 120, 128, 0.3);
+    --apple-shadow-md:        0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
