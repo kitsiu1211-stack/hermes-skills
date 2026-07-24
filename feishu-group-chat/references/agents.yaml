@@ -1,0 +1,204 @@
+# Agent协作群 — Agent 能力注册表
+# 群聊 ID: oc_219a613c13292855c2dc4b80e59dfd6e
+# 最后更新: 2026-07-10 (19:30)
+# ⚠️ 群成员变动频繁，每次使用前用 lark-cli im +chat-members-list --member-types bot --page-all 刷新
+
+agents:
+  - name: "Hermes Agent"
+    display_name: "Mark 42-浪子"
+    app_id: "cli_a964fd626078dcbc"
+    open_id: "ou_9b18941c79156bd08a70431dc5dcf7f9"
+    role: "orchestrator"
+    platform: "Hermes Agent (Nous Research)"
+    capabilities:
+      - "CEO Agent：任务分析、路由分派、质量把关、结果整理"
+      - "调研搜索（three-stage-pipeline）"
+      - "代码开发/审查"
+      - "飞书 API / 卡片 / 文档"
+      - "会议旁听（feishu-meeting-listen）"
+      - "跨境电商副业咨询"
+    receive_format: "@Mark 42-浪子 或直接对话"
+    route_to: "深度调研 / 代码审查 / 复杂编排 / 会议旁听"
+
+  - name: "Aime 个人助理"
+    app_id: "cli_9a31b280a1f3d101"
+    open_id: "ou_b33d3f6e144a9730db025d288c81212c"
+    role: "agent"
+    platform: "Aime 桌面客户端"
+    capabilities:
+      - "业绩查询/分析：风神(Aeolus)全量数据，双重校验"
+      - "秘书事务：日历、定时提醒、周期任务"
+      - "通用任务：代码、文档、飞书多维表格、搜索"
+      - "工作日报"
+    limitations:
+      - "C360 CLI 未直连"
+    response_pattern: "收到 @ 后先回「在线，Javis 🦾 已收到」，下一轮心跳返回实际数据"
+    receive_format: "@Aime 个人助理"
+    route_to: "业绩分析/风神数据 / 日历秘书"
+    heartbeat: "工作日每 10 分钟心跳轮询一次"
+
+  - name: "马斯克"
+    app_id: "cli_a934e54959f99bd8"
+    open_id: "ou_ec816541777287f722b0896287c4486a"
+    role: "agent"
+    platform: "Aily 智能伙伴"
+    capabilities:
+      - "客户名单查询"
+      - "合作产品信息"
+      - "合同状态"
+    receive_format: "@马斯克"
+    route_to: "客户名单 / 南区业务 / 合作产品 / 合同"
+
+  - name: "南区 ISV 业务助手"
+    app_id: "cli_aaa06c74f1f89bcb"
+    open_id: "ou_abdda0c6cd5e362bca041cb3dbd88f86"
+    role: "agent"
+    platform: "未知"
+    capabilities:
+      - "ISV 材料"
+      - "客户案例"
+      - "对客话术"
+    receive_format: "@南区 ISV 业务助手"
+    status: "✅ Thread 回复"
+
+  - name: "大湾区样板间专项小管家"
+    app_id: "cli_a96aefe4aff85cef"
+    open_id: "ou_459dac1c298c48d280a3ea3260aac80e"
+    role: "agent"
+    platform: "未知"
+    capabilities:
+      - "案例弹药库"
+      - "样板间方案"
+      - "许愿助理"
+    receive_format: "@大湾区样板间专项小管家"
+    status: "✅ Thread 回复，有时主聊天"
+
+  - name: "TC 交付数字员工"
+    app_id: "cli_a96d9040ddb8dccb"
+    open_id: "ou_c9cd24728752004e848f099d2b448d29"
+    role: "agent"
+    platform: "未知"
+    capabilities:
+      - "客户迁移/集成交付"
+      - "企微/钉钉/Confluence/语雀迁移"
+      - "SSO免登、API集成、审批连接器"
+    receive_format: "@TC 交付数字员工"
+    status: "✅ 入群时发送欢迎卡片"
+
+  - name: "客户 AI 场景登记表 智能体"
+    app_id: "cli_aada69142438dcc5"
+    open_id: "ou_0ef4cd7a1f7ce714d503fa244edf95c0"
+    role: "agent"
+    platform: "Feishu Base + 智能体"
+    capabilities:
+      - "客户 AI 需求登记（飞书 Base 多维表格录入）"
+      - "记录字段：对接人、部门、AI需求描述、AI场景、客户名称、职位"
+    receive_format: "@客户 AI 场景登记表 智能体"
+    status: "✅ 2026-07-10 入群，已发送自我介绍，@mention 可送达"
+    note: "连接 Base 7660857188327427307（客户需求登记表），与 Hermes 会议旁听后的 AI_DISPATCH 路径对接"
+
+  - name: "TRAE ASSISITANT"
+    app_id: "cli_aad9a703c7399ce0"
+    open_id: "ou_1d0748623c4f90fd2f4a92b6a6734b45"
+    role: "agent"
+    platform: "TRAE IDE"
+    capabilities: ["代码开发", "macOS 应用打包", "CatCPU 菜单栏应用"]
+    receive_format: "@TRAE ASSISITANT"
+    status: "✅ 已入群，@mention 可送达"
+
+  - name: "企鹅兄弟"
+    app_id: "cli_aad1d272e3385cb3"
+    open_id: "ou_a7276d80c5abc2abfd8da3140ac94e65"
+    role: "agent"
+    platform: "WorkBuddy"
+    capabilities: ["小红书内容营销方案", "消费电子出海", "KOL/KOC 投放策略", "种草转化链路"]
+    receive_format: "@企鹅兄弟"
+    status: "✅ @mention 可送达 — 已实现 text + <at> 标签回复（2026.7.19 验证）"
+
+  - name: "实习生 - 小帅"
+    app_id: "cli_aad0e302e1789cde"
+    open_id: "ou_4bc03452642a3b90fcf70a91aba695ea"
+    role: "agent"
+    platform: "未知"
+    capabilities: []
+    receive_format: "@实习生 - 小帅"
+    status: "✅ 已入群，@mention 可送达"
+
+  - name: "Kimi Code"
+    app_id: "cli_aad189d18d781cd1"
+    open_id: "ou_75e812630b3c51fc879295c78424898c"
+    role: "agent"
+    platform: "未知"
+    capabilities: ["代码生成"]
+    receive_format: "@Kimi Code 或 @Mark 42-浪子"
+    status: "✅ @mention 可送达 — 已原生支持 text + <at> 标签（2026.7.19 验证）"
+    aliases: ["Mark 42-浪子", "Kimi"]
+    note: "⚠️ 不要混淆「Kimi Code」(ou_75e812, 代码生成、活跃) 和「Kimi Agent」(ou_8c41b5, 无响应、已离群)——用户要求代码任务必须 @Kimi Code，不是 Kimi Agent。群内 display_name 是「Mark 42-浪子」，但技术上 @Kimi Code 也能触发。"
+
+  # --- 已离群（保留记录以备回群）---
+  - name: "CodeM"
+    app_id: "cli_a9698e4435f85cc9"
+    open_id: "ou_0425582e71a1045dd1c6e139825d2139"
+    role: "agent"
+    platform: "未知"
+    capabilities: ["代码生成", "商机挖掘"]
+    status: "❌ 已离群 (2026-07-09 入群，2026-07-10 离群)"
+
+  - name: "CSM oncall大师"
+    app_id: "cli_a555904bae78900d"
+    open_id: "❓"
+    role: "agent"
+    platform: "未知"
+    capabilities: ["CSM oncall 支持", "产品问题诊断"]
+    status: "❌ 已离群 (2026-07-09 入群，2026-07-10 离群)"
+
+  - name: "SaaS RM 团队智能体"
+    app_id: "cli_aada28837539dbb6"
+    open_id: "ou_3b1e9a0910f76e58ed07c3b9053a0f32"
+    role: "agent"
+    platform: "未知"
+    capabilities: ["业务答疑", "任务指标跟踪", "群聊结构化整理"]
+    status: "❌ 已离群 (2026-07-10 入群，同日离群)"
+
+  - name: "Kimi Agent"
+    app_id: "cli_aac38f8be0b8dce4"
+    open_id: "ou_8c41b534519bd88787c285b4fffe558d"
+    role: "agent"
+    platform: "未知"
+    capabilities: []
+    status: "❌ 无响应 — 不在 chat-members-list 中"
+
+  - name: "My Mira"
+    app_id: "unknown"
+    open_id: "ou_9cb3d222724fdfa17f65ef1900948d32"
+    role: "agent"
+    platform: "unknown"
+    capabilities: []
+    status: "❌ 不在 bot 列表中"
+
+humans:
+  - name: "袁鑫杰"
+    open_id: "ou_dc055b0b5b0b5db2b1af5e79c0536db6"
+    role: "owner"
+
+routing_rules:
+  - trigger: "业绩/销售/风神/晨报/周报/季报/产线"
+    target: "Aime 个人助理"
+  - trigger: "客户名单/南区/合作产品/合同"
+    target: "马斯克"
+  - trigger: "ISV/分贝通/影刀/帆软/对客话术"
+    target: "南区 ISV 业务助手"
+  - trigger: "样板间/案例弹药库/案例查询"
+    target: "大湾区样板间专项小管家"
+  - trigger: "迁移/集成/交付/SSO/企微/钉钉"
+    target: "TC 交付数字员工"
+  - trigger: "AI场景登记/客户需求录入/多维表格登记"
+    target: "客户 AI 场景登记表 智能体"
+  - trigger: "日历/日程/提醒/秘书"
+    target: "Aime 个人助理"
+  - trigger: "监听会议/会议旁听/会议纪要"
+    target: "Hermes"
+  - trigger: "深度调研/GitHub/代码审查"
+    target: "Hermes"
+  - trigger: "通用任务(未明确匹配)"
+    target: "Hermes"
