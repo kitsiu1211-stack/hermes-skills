@@ -1,0 +1,55 @@
+{
+  "config": {"wide_screen_mode": true},
+  "header": {
+    "title": {"tag": "plain_text", "content": "📱 主题标题"},
+    "template": "blue"
+  },
+  "elements": [
+    {
+      "tag": "div",
+      "text": {
+        "tag": "lark_md",
+        "content": "**🎯 筛选说明**：从样板间 N 个案例中精选 M 个，匹配客户（~X人 / Y行业）的需求"
+      }
+    },
+    {"tag": "hr"},
+    {
+      "tag": "div",
+      "text": {
+        "tag": "lark_md",
+        "content": "**🌟 案例名称 — 一句话标题** 🥇"
+      }
+    },
+    {
+      "tag": "div",
+      "text": {
+        "tag": "lark_md",
+        "content": "| 维度 | 内容 |\n|---|---|\n| 行业 | XXX |\n| 案例亮点 | XXX |\n| IT 价值 | 量化数据 |\n| 案例链接 | [查看详情](https://...) |\n| 匹配理由 | 为什么选这个 |"
+      }
+    },
+    {"tag": "hr"},
+    {
+      "tag": "div",
+      "text": {
+        "tag": "lark_md",
+        "content": "**❌ 未选用**：[案例名] — [原因]"
+      }
+    },
+    {"tag": "hr"},
+    {
+      "tag": "div",
+      "text": {
+        "tag": "lark_md",
+        "content": "**💡 建议话术**：[用户可直接转发给客户的锚点话术]"
+      }
+    },
+    {"tag": "hr"},
+    {
+      "tag": "div",
+      "text": {
+        "tag": "lark_md",
+        "content": "🔗 案例来源：[CSM 客户案例弹药库](https://bytedance.larkoffice.com/base/JIYObMewRafZg1s2srtcxz61n2b)"
+      }
+    }
+  ]
+}
