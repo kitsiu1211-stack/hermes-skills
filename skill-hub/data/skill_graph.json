@@ -1,0 +1,2230 @@
+{
+  "nodes": {
+    "apple-reminders": {
+      "name": "apple-reminders",
+      "path": ".hermes/skills/apple/apple-reminders",
+      "tags": [],
+      "category": "",
+      "description": "Apple Reminders via remindctl: add, list, complete.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "macos-computer-use": {
+      "name": "macos-computer-use",
+      "path": ".hermes/skills/apple/macos-computer-use",
+      "tags": [],
+      "category": "",
+      "description": "Drive the macOS desktop in the background — screenshots, mouse, keyboard,\nscroll",
+      "outgoing": [],
+      "incoming": []
+    },
+    "imessage": {
+      "name": "imessage",
+      "path": ".hermes/skills/apple/imessage",
+      "tags": [],
+      "category": "",
+      "description": "Send and receive iMessages/SMS via the imsg CLI on macOS.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "findmy": {
+      "name": "findmy",
+      "path": ".hermes/skills/apple/findmy",
+      "tags": [],
+      "category": "",
+      "description": "Track Apple devices/AirTags via FindMy.app on macOS.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "apple-notes": {
+      "name": "apple-notes",
+      "path": ".hermes/skills/apple/apple-notes",
+      "tags": [],
+      "category": "",
+      "description": "Manage Apple Notes via memo CLI: create, search, edit.",
+      "outgoing": [
+        "obsidian"
+      ],
+      "incoming": []
+    },
+    "chinese-company-research": {
+      "name": "chinese-company-research",
+      "path": ".hermes/skills/research/chinese-company-research",
+      "tags": [],
+      "category": "",
+      "description": "Research Chinese companies when Baidu/Google/Bing trigger bot detection, using T",
+      "outgoing": [],
+      "incoming": []
+    },
+    "blogwatcher": {
+      "name": "blogwatcher",
+      "path": ".hermes/skills/research/blogwatcher",
+      "tags": [],
+      "category": "",
+      "description": "Monitor blogs and RSS/Atom feeds via blogwatcher-cli tool.",
+      "outgoing": [
+        "blogwatcher"
+      ],
+      "incoming": [
+        "blogwatcher"
+      ]
+    },
+    "tech-project-evaluation": {
+      "name": "tech-project-evaluation",
+      "path": ".hermes/skills/research/tech-project-evaluation",
+      "tags": [],
+      "category": "research",
+      "description": "快速评估新的 AI/技术工具项目——当用户提到一个新项目/工具名时，系统性地搜集信息、理解架构、评估价值。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "polymarket": {
+      "name": "polymarket",
+      "path": ".hermes/skills/research/polymarket",
+      "tags": [
+        "polymarket",
+        "prediction-markets",
+        "market-data",
+        "trading"
+      ],
+      "category": "",
+      "description": "Query Polymarket: markets, prices, orderbooks, history.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "llm-wiki": {
+      "name": "llm-wiki",
+      "path": ".hermes/skills/research/llm-wiki",
+      "tags": [],
+      "category": "",
+      "description": "Karpathy's LLM Wiki: build/query interlinked markdown KB.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "arxiv": {
+      "name": "arxiv",
+      "path": ".hermes/skills/research/arxiv",
+      "tags": [],
+      "category": "",
+      "description": "Search arXiv papers by keyword, author, category, or ID.",
+      "outgoing": [
+        "ocr-and-documents"
+      ],
+      "incoming": [
+        "research-paper-writing"
+      ]
+    },
+    "chinese-search-workaround": {
+      "name": "chinese-search-workaround",
+      "path": ".hermes/skills/research/chinese-search-workaround",
+      "tags": [],
+      "category": "research",
+      "description": "当百度/Google/Bing/知乎等中文网站触发反爬/验证码时，使用头条搜索（so.toutiao.com）作为替代渠道进行中文信息检索。",
+      "outgoing": [
+        "my-coffee"
+      ],
+      "incoming": [
+        "find-nearby",
+        "side-hustle-planning"
+      ]
+    },
+    "research-paper-writing": {
+      "name": "research-paper-writing",
+      "path": ".hermes/skills/research/research-paper-writing",
+      "tags": [],
+      "category": "",
+      "description": "Write ML papers for NeurIPS/ICML/ICLR: design→submit.",
+      "outgoing": [
+        "arxiv"
+      ],
+      "incoming": []
+    },
+    "文章分析": {
+      "name": "文章分析",
+      "path": ".hermes/skills/research/article-analysis",
+      "tags": [],
+      "category": "",
+      "description": "分析用户分享的公众号推文/网页文章，纯提取核心观点，不关联外部知识，输出飞书卡片",
+      "outgoing": [],
+      "incoming": []
+    },
+    "pipeline-search-agent": {
+      "name": "pipeline-search-agent",
+      "path": ".hermes/skills/pipeline/pipeline-search-agent",
+      "tags": [],
+      "category": "",
+      "description": "Search Agent for the three-stage pipeline. Conducts structured research on a top",
+      "outgoing": [],
+      "incoming": []
+    },
+    "three-stage-pipeline": {
+      "name": "three-stage-pipeline",
+      "path": ".hermes/skills/pipeline/three-stage-pipeline",
+      "tags": [],
+      "category": "",
+      "description": "Main orchestrator skill for the three-stage research pipeline: Search → Analyst ",
+      "outgoing": [],
+      "incoming": [
+        "side-hustle-planning"
+      ]
+    },
+    "pipeline-qa-agent": {
+      "name": "pipeline-qa-agent",
+      "path": ".hermes/skills/pipeline/pipeline-qa-agent",
+      "tags": [],
+      "category": "",
+      "description": "QA/Review Agent for the three-stage pipeline. Evaluates the quality, completenes",
+      "outgoing": [],
+      "incoming": []
+    },
+    "pipeline-analyst-agent": {
+      "name": "pipeline-analyst-agent",
+      "path": ".hermes/skills/pipeline/pipeline-analyst-agent",
+      "tags": [],
+      "category": "",
+      "description": "Analyst Agent for the three-stage pipeline. Takes research findings from the Sea",
+      "outgoing": [],
+      "incoming": []
+    },
+    "minecraft-modpack-server": {
+      "name": "minecraft-modpack-server",
+      "path": ".hermes/skills/gaming/minecraft-modpack-server",
+      "tags": [
+        "minecraft",
+        "gaming",
+        "server",
+        "neoforge",
+        "forge",
+        "modpack"
+      ],
+      "category": "",
+      "description": "Host modded Minecraft servers (CurseForge, Modrinth).",
+      "outgoing": [],
+      "incoming": []
+    },
+    "pokemon-player": {
+      "name": "pokemon-player",
+      "path": ".hermes/skills/gaming/pokemon-player",
+      "tags": [
+        "gaming",
+        "pokemon",
+        "emulator",
+        "pyboy",
+        "gameplay",
+        "gameboy"
+      ],
+      "category": "",
+      "description": "Play Pokemon via headless emulator + RAM reads.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "xurl": {
+      "name": "xurl",
+      "path": ".hermes/skills/social-media/xurl",
+      "tags": [],
+      "category": "",
+      "description": "X/Twitter via xurl CLI: post, search, DM, media, v2 API.",
+      "outgoing": [
+        "xitter",
+        "xurl"
+      ],
+      "incoming": [
+        "xurl"
+      ]
+    },
+    "xitter": {
+      "name": "xitter",
+      "path": ".hermes/skills/social-media/xitter",
+      "tags": [],
+      "category": "",
+      "description": "Interact with X/Twitter via the x-cli terminal client using official X API crede",
+      "outgoing": [],
+      "incoming": [
+        "xurl"
+      ]
+    },
+    "beautiful-feishu-whiteboard": {
+      "name": "beautiful-feishu-whiteboard",
+      "path": ".hermes/skills/beautiful-feishu-whiteboard",
+      "tags": [],
+      "category": "",
+      "description": "A library of 35 curated colour palette styles for building beautiful, editable F",
+      "outgoing": [
+        "lark-cli"
+      ],
+      "incoming": []
+    },
+    "ljg-roundtable": {
+      "name": "ljg-roundtable",
+      "path": ".hermes/skills/ljg-roundtable",
+      "tags": [],
+      "category": "",
+      "description": "Structured roundtable discussion framework with a truth-seeking moderator who in",
+      "outgoing": [],
+      "incoming": []
+    },
+    "supabase-existing-project-cli": {
+      "name": "supabase-existing-project-cli",
+      "path": ".hermes/skills/devops/supabase-existing-project-cli",
+      "tags": [],
+      "category": "devops",
+      "description": "Connect to an existing Supabase project via CLI (no Docker needed) and push sche",
+      "outgoing": [],
+      "incoming": []
+    },
+    "feishu-thread-reply": {
+      "name": "feishu-thread-reply",
+      "path": ".hermes/skills/devops/feishu-thread-reply",
+      "tags": [],
+      "category": "",
+      "description": "Hermes Gateway 对飞书话题（thread）内回复消息的技术实现方式。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "kanban-worker": {
+      "name": "kanban-worker",
+      "path": ".hermes/skills/devops/kanban-worker",
+      "tags": [],
+      "category": "",
+      "description": "Pitfalls, examples, and edge cases for Hermes Kanban workers. The lifecycle itse",
+      "outgoing": [],
+      "incoming": []
+    },
+    "双周Skill同步": {
+      "name": "双周Skill同步",
+      "path": ".hermes/skills/devops/biweekly-skill-sync",
+      "tags": [],
+      "category": "",
+      "description": "每双周周五检查新建Skill，上传到GitHub和妙搭SkillHub，输出飞书卡片报告",
+      "outgoing": [
+        "skill-hub"
+      ],
+      "incoming": []
+    },
+    "webhook-subscriptions": {
+      "name": "webhook-subscriptions",
+      "path": ".hermes/skills/devops/webhook-subscriptions",
+      "tags": [],
+      "category": "",
+      "description": "Webhook subscriptions: event-driven agent runs.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "kanban-orchestrator": {
+      "name": "kanban-orchestrator",
+      "path": ".hermes/skills/devops/kanban-orchestrator",
+      "tags": [],
+      "category": "",
+      "description": "Decomposition playbook + anti-temptation rules for an orchestrator profile routi",
+      "outgoing": [],
+      "incoming": []
+    },
+    "hermes-feishu-gateway": {
+      "name": "hermes-feishu-gateway",
+      "path": ".hermes/skills/devops/hermes-feishu-gateway",
+      "tags": [],
+      "category": "",
+      "description": "Hermes Feishu/Lark gateway registration, auth troubleshooting, and platform inte",
+      "outgoing": [
+        "feishu-api",
+        "feishu-group-chat"
+      ],
+      "incoming": []
+    },
+    "fish-audio-tts": {
+      "name": "fish-audio-tts",
+      "path": ".hermes/skills/devops/fish-audio-tts",
+      "tags": [],
+      "category": "",
+      "description": "Integrate Fish Audio TTS — free S2.1 Pro model, HTTP API, Hermes custom command ",
+      "outgoing": [],
+      "incoming": [
+        "volcengine-tts"
+      ]
+    },
+    "browser-harness-install": {
+      "name": "browser-harness-install",
+      "path": ".hermes/skills/devops/browser-harness-install",
+      "tags": [],
+      "category": "devops",
+      "description": "Install and troubleshoot browser-use/browser-harness on macOS. Clone the repo, i",
+      "outgoing": [],
+      "incoming": []
+    },
+    "feishu-api": {
+      "name": "feishu-api",
+      "path": ".hermes/skills/devops/feishu-api",
+      "tags": [],
+      "category": "devops",
+      "description": "Feishu/Lark Open Platform API operations — bitable CRUD, docx editing, auth/perm",
+      "outgoing": [
+        "lark-cli"
+      ],
+      "incoming": [
+        "hermes-feishu-gateway",
+        "ljg-rank",
+        "ebbinghaus-review",
+        "ljg-learn"
+      ]
+    },
+    "supabase-cli-workflow": {
+      "name": "supabase-cli-workflow",
+      "path": ".hermes/skills/devops/supabase-cli-workflow",
+      "tags": [
+        "supabase",
+        "database",
+        "auth",
+        "cli"
+      ],
+      "category": "devops",
+      "description": "Supabase CLI 完整工作流 — 远程项目 link、迁移管理、Auth API（2026-04-21 测试通过）",
+      "outgoing": [],
+      "incoming": []
+    },
+    "supabase-bypass-email-rate-limit": {
+      "name": "supabase-bypass-email-rate-limit",
+      "path": ".hermes/skills/devops/supabase-bypass-email-rate-limit",
+      "tags": [],
+      "category": "devops",
+      "description": "Supabase 免费套餐邮件频率限制的绕过方法 — 通过 service_role key + supabase-js admin.createUser 直接",
+      "outgoing": [],
+      "incoming": []
+    },
+    "volcengine-tts": {
+      "name": "volcengine-tts",
+      "path": ".hermes/skills/devops/volcengine-tts",
+      "tags": [],
+      "category": "",
+      "description": "Integrate Volcengine/Doubao Speech TTS — WebSocket bidirectional streaming, HTTP",
+      "outgoing": [
+        "feishu-meeting-listen",
+        "fish-audio-tts"
+      ],
+      "incoming": []
+    },
+    "doubao-tts": {
+      "name": "doubao-tts",
+      "path": ".hermes/skills/devops/doubao-tts",
+      "tags": [],
+      "category": "",
+      "description": "火山引擎豆包语音 TTS（语音合成）WebSocket 双向流式接入。使用官方二进制协议库，支持实时文本流式输入、音频流式输出。触发词：豆包TTS、火山TTS、",
+      "outgoing": [],
+      "incoming": []
+    },
+    "skill-hub": {
+      "name": "skill-hub",
+      "path": ".hermes/skills/skill-hub",
+      "tags": [],
+      "category": "feishu",
+      "description": "Maintain the Hermes Skills Hub — a static HTML showcase deployed on Miaoda (妙搭).",
+      "outgoing": [
+        "animation-vocabulary",
+        "ljg-rank"
+      ],
+      "incoming": [
+        "双周Skill同步"
+      ]
+    },
+    "find-nearby": {
+      "name": "find-nearby",
+      "path": ".hermes/skills/leisure/find-nearby",
+      "tags": [],
+      "category": "",
+      "description": "Find nearby places (restaurants, cafes, bars, pharmacies, etc.) using OpenStreet",
+      "outgoing": [
+        "chinese-search-workaround"
+      ],
+      "incoming": [
+        "maps"
+      ]
+    },
+    "find-animation-opportunities": {
+      "name": "find-animation-opportunities",
+      "path": ".hermes/skills/find-animation-opportunities",
+      "tags": [],
+      "category": "",
+      "description": "Search a codebase or UI for places that don't animate but should, and reject eve",
+      "outgoing": [
+        "improve-animations",
+        "review-animations"
+      ],
+      "incoming": []
+    },
+    "upload-file-to-tos": {
+      "name": "upload-file-to-tos",
+      "path": ".hermes/skills/magic-builder/upload-file-to-tos",
+      "tags": [],
+      "category": "",
+      "description": "上传文件到 TOS 并获取公开链接。支持生成妙笔网页或通过 CLI 脚本上传本地文件，CLI 支持 magic_base_url 指定妙笔域名。当用户需要上传文",
+      "outgoing": [
+        "upload-file-to-tos"
+      ],
+      "incoming": [
+        "upload-file-to-tos"
+      ]
+    },
+    "trae-loop-engineering": {
+      "name": "trae-loop-engineering",
+      "path": ".hermes/skills/trae-loop-engineering",
+      "tags": [],
+      "category": "development",
+      "description": "TRAE 编码项目的 Loop Engineering 测试闭环。Hermes 审查代码（不运行），反馈给 TRAE 在 TRAE 本地运行 → 循环直到通过。",
+      "outgoing": [
+        "loop-me"
+      ],
+      "incoming": []
+    },
+    "ljg-qa": {
+      "name": "ljg-qa",
+      "path": ".hermes/skills/ljg-qa",
+      "tags": [],
+      "category": "",
+      "description": "信息提问机。给一篇文章/论文/书，把核心观点抽成 Q-A 对——Question 切要害，不教科书；Answer 简洁清晰，有形式化收口，逻辑链完整。读者顺 Q",
+      "outgoing": [],
+      "incoming": []
+    },
+    "improve-animations": {
+      "name": "improve-animations",
+      "path": ".hermes/skills/improve-animations",
+      "tags": [],
+      "category": "",
+      "description": "Survey a codebase's animation and motion code as a senior motion advisor, then p",
+      "outgoing": [
+        "review-animations"
+      ],
+      "incoming": [
+        "find-animation-opportunities"
+      ]
+    },
+    "yuanbao": {
+      "name": "yuanbao",
+      "path": ".hermes/skills/yuanbao",
+      "tags": [],
+      "category": "",
+      "description": "Yuanbao (元宝) groups: @mention users, query info/members.",
+      "outgoing": [],
+      "incoming": [
+        "hermes-agent"
+      ]
+    },
+    "jupyter-live-kernel": {
+      "name": "jupyter-live-kernel",
+      "path": ".hermes/skills/data-science/jupyter-live-kernel",
+      "tags": [],
+      "category": "",
+      "description": "Iterative Python via live Jupyter kernel (hamelnb).",
+      "outgoing": [],
+      "incoming": []
+    },
+    "agent-group-collab": {
+      "name": "agent-group-collab",
+      "path": ".hermes/skills/feishu/agent-group-collab",
+      "tags": [],
+      "category": "feishu",
+      "description": "Query bots in the Agent协作群 — Aime (heartbeat polling), ISV/样板间/马斯克/TC交付 (webhook",
+      "outgoing": [
+        "feishu-group-chat"
+      ],
+      "incoming": [
+        "meeting-followup-material",
+        "feishu-meeting-listen",
+        "feishu-group-chat"
+      ]
+    },
+    "output-style-xiaoguanjia": {
+      "name": "output-style-xiaoguanjia",
+      "path": ".hermes/skills/feishu/output-style-xiaoguanjia",
+      "tags": [],
+      "category": "feishu",
+      "description": "模仿小管家（样板间专项小管家）的结构化输出排版风格——清晰层级、分组表格、卡片优先。",
+      "outgoing": [],
+      "incoming": [
+        "feishu-meeting-listen"
+      ]
+    },
+    "miaoda-deploy": {
+      "name": "miaoda-deploy",
+      "path": ".hermes/skills/feishu/miaoda-deploy",
+      "tags": [],
+      "category": "",
+      "description": "用 lark-cli 创建和部署妙搭 HTML 应用。触发：用户说「在妙搭搭一个」「用妙搭发布」「妙搭部署」。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "post-handover-intelligence": {
+      "name": "post-handover-intelligence",
+      "path": ".hermes/skills/feishu/post-handover-intelligence",
+      "tags": [],
+      "category": "feishu",
+      "description": "客户交接会后自动情报补齐——C360 查客户详情、公开信息搜索、客户专属知识积累。在 meeting-listen 检测到会议结束或用户分享交接会议内容后自动触",
+      "outgoing": [],
+      "incoming": [
+        "feishu-meeting-listen"
+      ]
+    },
+    "meeting-followup-material": {
+      "name": "meeting-followup-material",
+      "path": ".hermes/skills/feishu/meeting-followup-material",
+      "tags": [],
+      "category": "feishu",
+      "description": "会议后自动从 ISV 助手和样板间小管家拉取案例材料，筛选推荐，返回可直接转发给客户的文档链接。触发：用户分享会议纪要后，或明确要求根据会议上下文找材料。",
+      "outgoing": [
+        "agent-group-collab"
+      ],
+      "incoming": []
+    },
+    "client-handover-checklist": {
+      "name": "client-handover-checklist",
+      "path": ".hermes/skills/feishu/client-handover-checklist",
+      "tags": [],
+      "category": "",
+      "description": "客户交接标准化框架——新客团队 → 老客团队（RM）的客户交接会议。覆盖七维度（金额/决策人/签约原因/决策过程/商机/风险/线下交接）+ 易被忽略的三个盲区（",
+      "outgoing": [],
+      "incoming": [
+        "feishu-meeting-listen"
+      ]
+    },
+    "sales-playbook": {
+      "name": "sales-playbook",
+      "path": ".hermes/skills/feishu/sales-playbook",
+      "tags": [],
+      "category": "",
+      "description": "飞书产品销售话术与竞品对比分析。触发：用户要求 Deep Grill 产品对比、写销售手册、竞品定位分析、卖点提炼。先拿原始产品能力数据再分析——不猜功能。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "aime-query": {
+      "name": "aime-query",
+      "path": ".hermes/skills/feishu/aime-query",
+      "tags": [],
+      "category": "feishu",
+      "description": "Query Aime (@Aime 个人助理) in the Agent group and reliably wait for her 10-minute h",
+      "outgoing": [],
+      "incoming": []
+    },
+    "feishu-meeting-listen": {
+      "name": "feishu-meeting-listen",
+      "path": ".hermes/skills/feishu/feishu-meeting-listen",
+      "tags": [],
+      "category": "feishu",
+      "description": "Agent-driven Feishu meeting observer. Three modes - Voice interaction, Chat repl",
+      "outgoing": [
+        "agent-group-collab",
+        "client-handover-checklist",
+        "feishu-card-send",
+        "meeting-audit",
+        "output-style-xiaoguanjia",
+        "post-handover-intelligence"
+      ],
+      "incoming": [
+        "volcengine-tts"
+      ]
+    },
+    "diverge-converge": {
+      "name": "diverge-converge",
+      "path": ".hermes/skills/software-development/diverge-converge",
+      "tags": [],
+      "category": "",
+      "description": "扩散收敛法——面对任何模糊复杂问题时，与 Agent 共建方案的通用思维框架。\n触发词：扩散收敛、diverge-converge、先扩散后收敛、帮我把这个想法",
+      "outgoing": [
+        "grill-with-docs"
+      ],
+      "incoming": [
+        "loop-engineering-pipeline",
+        "grill-with-docs"
+      ]
+    },
+    "test-driven-development": {
+      "name": "test-driven-development",
+      "path": ".hermes/skills/software-development/test-driven-development",
+      "tags": [],
+      "category": "",
+      "description": "TDD: enforce RED-GREEN-REFACTOR, tests before code.",
+      "outgoing": [],
+      "incoming": [
+        "plan",
+        "writing-plans"
+      ]
+    },
+    "systematic-debugging": {
+      "name": "systematic-debugging",
+      "path": ".hermes/skills/stackpilot/claude-config/skills/systematic-debugging",
+      "tags": [],
+      "category": "",
+      "description": "Structured 4-phase debugging methodology with root cause investigation. Use when",
+      "outgoing": [],
+      "incoming": []
+    },
+    "setup-matt-pocock-skills": {
+      "name": "setup-matt-pocock-skills",
+      "path": ".hermes/skills/software-development/setup-matt-pocock-skills",
+      "tags": [],
+      "category": "",
+      "description": "初始化项目以支持 Loop Engineering 流水线——配置 issue 追踪器、triage 标签、领域文档。首次使用其他工程 skill 前运行一次。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "loop-me": {
+      "name": "loop-me",
+      "path": ".hermes/skills/software-development/loop-me",
+      "tags": [],
+      "category": "",
+      "description": "Grill me about specs for the workflows I want to build, within this workspace.",
+      "outgoing": [],
+      "incoming": [
+        "trae-loop-engineering"
+      ]
+    },
+    "handoff": {
+      "name": "handoff",
+      "path": ".hermes/skills/software-development/handoff",
+      "tags": [],
+      "category": "",
+      "description": "生成交接文档，让下一个 Agent/人无缝接手当前工作。触发：流水线 handoff 阶段。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "plan": {
+      "name": "plan",
+      "path": ".hermes/skills/software-development/plan",
+      "tags": [],
+      "category": "",
+      "description": "Plan mode: write an actionable markdown plan to .hermes/plans/, no execution. Bi",
+      "outgoing": [
+        "subagent-driven-development",
+        "test-driven-development"
+      ],
+      "incoming": [
+        "spike",
+        "claude-code"
+      ]
+    },
+    "html-generation": {
+      "name": "html-generation",
+      "path": ".hermes/skills/software-development/html-generation",
+      "tags": [],
+      "category": "software-development",
+      "description": "Generate large HTML files from JSON data and templates. Use when creating detail",
+      "outgoing": [],
+      "incoming": []
+    },
+    "code-review": {
+      "name": "code-review",
+      "path": ".hermes/skills/software-development/code-review",
+      "tags": [],
+      "category": "",
+      "description": "双轴代码审查——规范轴（代码是否符合编码标准）+ 规格轴（代码是否匹配原始 issue/PRD）。",
+      "outgoing": [],
+      "incoming": [
+        "implement",
+        "tdd"
+      ]
+    },
+    "to-tickets": {
+      "name": "to-tickets",
+      "path": ".hermes/skills/software-development/to-tickets",
+      "tags": [],
+      "category": "",
+      "description": "将 PRD 拆分为 tracer-bullet tickets——每个是垂直切片，声明阻塞关系，发布到追踪器。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "loop-engineering-pipeline": {
+      "name": "loop-engineering-pipeline",
+      "path": ".hermes/skills/software-development/loop-engineering-pipeline",
+      "tags": [],
+      "category": "",
+      "description": "Matt Pocock Loop Engineering 开发专用流水线。从模糊需求到可交付代码的端到端流程。\n触发词：loop、开始 loop、loop en",
+      "outgoing": [
+        "diverge-converge",
+        "grill-with-docs"
+      ],
+      "incoming": [
+        "grill-with-docs"
+      ]
+    },
+    "to-spec": {
+      "name": "to-spec",
+      "path": ".hermes/skills/software-development/to-spec",
+      "tags": [],
+      "category": "",
+      "description": "将当前对话内容合成为结构化 PRD/规范文档，不追问——只整理已有信息。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "hermes-agent-skill-authoring": {
+      "name": "hermes-agent-skill-authoring",
+      "path": ".hermes/skills/software-development/hermes-agent-skill-authoring",
+      "tags": [],
+      "category": "",
+      "description": "Author in-repo SKILL.md: frontmatter, validator, structure, and writing-quality ",
+      "outgoing": [
+        "dogfood"
+      ],
+      "incoming": []
+    },
+    "python-debugpy": {
+      "name": "python-debugpy",
+      "path": ".hermes/skills/software-development/python-debugpy",
+      "tags": [],
+      "category": "",
+      "description": "Debug Python: pdb REPL + debugpy remote (DAP).",
+      "outgoing": [],
+      "incoming": [
+        "node-inspect-debugger",
+        "debugging-hermes-tui-commands"
+      ]
+    },
+    "grill-with-docs": {
+      "name": "grill-with-docs",
+      "path": ".hermes/skills/software-development/grill-with-docs",
+      "tags": [],
+      "category": "",
+      "description": "追问式需求澄清——一次一个问题，带置信度和对比表格，逐步推进直到边界清晰，同时产出 ADR 和决策台账。diverge-converge 和 loop-engi",
+      "outgoing": [
+        "diverge-converge",
+        "loop-engineering-pipeline"
+      ],
+      "incoming": [
+        "diverge-converge",
+        "loop-engineering-pipeline"
+      ]
+    },
+    "implement": {
+      "name": "implement",
+      "path": ".hermes/skills/software-development/implement",
+      "tags": [],
+      "category": "",
+      "description": "基于 spec/tickets 实现功能——TDD 驱动，自动类型检查 + 代码审查。触发：流水线 implement 阶段。",
+      "outgoing": [
+        "code-review",
+        "tdd"
+      ],
+      "incoming": []
+    },
+    "writing-plans": {
+      "name": "writing-plans",
+      "path": ".hermes/skills/software-development/writing-plans",
+      "tags": [],
+      "category": "",
+      "description": "Write implementation plans: bite-sized tasks, paths, code.",
+      "outgoing": [
+        "subagent-driven-development",
+        "test-driven-development"
+      ],
+      "incoming": []
+    },
+    "spike": {
+      "name": "spike",
+      "path": ".hermes/skills/software-development/spike",
+      "tags": [],
+      "category": "",
+      "description": "Throwaway experiments to validate an idea before build.",
+      "outgoing": [
+        "plan"
+      ],
+      "incoming": []
+    },
+    "requesting-code-review": {
+      "name": "requesting-code-review",
+      "path": ".hermes/skills/software-development/requesting-code-review",
+      "tags": [],
+      "category": "",
+      "description": "Pre-commit review: security scan, quality gates, auto-fix.",
+      "outgoing": [
+        "github-code-review"
+      ],
+      "incoming": [
+        "simplify-code"
+      ]
+    },
+    "simplify-code": {
+      "name": "simplify-code",
+      "path": ".hermes/skills/software-development/simplify-code",
+      "tags": [],
+      "category": "",
+      "description": "Parallel 3-agent cleanup of recent code changes.",
+      "outgoing": [
+        "requesting-code-review",
+        "subagent-driven-development"
+      ],
+      "incoming": []
+    },
+    "tdd": {
+      "name": "tdd",
+      "path": ".hermes/skills/software-development/tdd",
+      "tags": [],
+      "category": "",
+      "description": "测试驱动开发——红-绿循环。写失败测试→最小实现→通过。与 implement 配套使用。",
+      "outgoing": [
+        "code-review"
+      ],
+      "incoming": [
+        "implement"
+      ]
+    },
+    "node-inspect-debugger": {
+      "name": "node-inspect-debugger",
+      "path": ".hermes/skills/software-development/node-inspect-debugger",
+      "tags": [],
+      "category": "",
+      "description": "Debug Node.js via --inspect + Chrome DevTools Protocol CLI.",
+      "outgoing": [
+        "python-debugpy"
+      ],
+      "incoming": [
+        "debugging-hermes-tui-commands"
+      ]
+    },
+    "debugging-hermes-tui-commands": {
+      "name": "debugging-hermes-tui-commands",
+      "path": ".hermes/skills/software-development/debugging-hermes-tui-commands",
+      "tags": [],
+      "category": "",
+      "description": "Debug Hermes TUI slash commands: Python, gateway, Ink UI.",
+      "outgoing": [
+        "node-inspect-debugger",
+        "python-debugpy"
+      ],
+      "incoming": []
+    },
+    "subagent-driven-development": {
+      "name": "subagent-driven-development",
+      "path": ".hermes/skills/software-development/subagent-driven-development",
+      "tags": [],
+      "category": "",
+      "description": "Execute plans via delegate_task subagents (2-stage review).",
+      "outgoing": [],
+      "incoming": [
+        "plan",
+        "writing-plans",
+        "simplify-code"
+      ]
+    },
+    "stackpilot-compete": {
+      "name": "stackpilot-compete",
+      "path": ".hermes/skills/stackpilot/claude-config/skills/stackpilot-compete",
+      "tags": [],
+      "category": "",
+      "description": "Competitive gap analysis from the perspective of a heavy user of a competing pro",
+      "outgoing": [],
+      "incoming": []
+    },
+    "stackpilot": {
+      "name": "stackpilot",
+      "path": ".hermes/skills/stackpilot/claude-config/skills/stackpilot",
+      "tags": [],
+      "category": "",
+      "description": "Sprint orchestration for Claude Code. Turns feature requests into working code t",
+      "outgoing": [],
+      "incoming": []
+    },
+    "stackpilot-research": {
+      "name": "stackpilot-research",
+      "path": ".hermes/skills/stackpilot/claude-config/skills/stackpilot-research",
+      "tags": [],
+      "category": "",
+      "description": "Deep research using cross-longitudinal analysis (横纵分析法). Produces 10,000-30,000 ",
+      "outgoing": [],
+      "incoming": []
+    },
+    "tdd-development": {
+      "name": "tdd-development",
+      "path": ".hermes/skills/stackpilot/claude-config/skills/tdd-development",
+      "tags": [],
+      "category": "",
+      "description": "Enforces Test-Driven Development with a rigorous verify/fix loop and root cause ",
+      "outgoing": [],
+      "incoming": []
+    },
+    "qa-12-dimensions": {
+      "name": "qa-12-dimensions",
+      "path": ".hermes/skills/stackpilot/claude-config/skills/qa-12-dimensions",
+      "tags": [],
+      "category": "",
+      "description": "Systematic test coverage using a 12-dimension scenario matrix plus two-stage cod",
+      "outgoing": [],
+      "incoming": []
+    },
+    "stackpilot-sync": {
+      "name": "stackpilot-sync",
+      "path": ".hermes/skills/stackpilot/claude-config/skills/stackpilot-sync",
+      "tags": [],
+      "category": "",
+      "description": "Manage external skill references inlined into stackpilot agents. Use /stackpilot",
+      "outgoing": [],
+      "incoming": []
+    },
+    "architecture-review": {
+      "name": "architecture-review",
+      "path": ".hermes/skills/stackpilot/claude-config/skills/architecture-review",
+      "tags": [],
+      "category": "",
+      "description": "Analyzes existing codebase patterns to make decisive architecture choices and de",
+      "outgoing": [],
+      "incoming": []
+    },
+    "release": {
+      "name": "release",
+      "path": ".hermes/skills/stackpilot/.claude/skills/release",
+      "tags": [],
+      "category": "",
+      "description": "Use when releasing a new version of stackpilot — auto-generates CHANGELOG from g",
+      "outgoing": [],
+      "incoming": []
+    },
+    "agent-world": {
+      "name": "agent-world",
+      "path": ".hermes/skills/agent-world",
+      "tags": [],
+      "category": "",
+      "description": "Register and authenticate on Agent World (world.coze.site) and explore its allia",
+      "outgoing": [],
+      "incoming": []
+    },
+    "dspy": {
+      "name": "dspy",
+      "path": ".hermes/skills/mlops/research/dspy",
+      "tags": [],
+      "category": "",
+      "description": "DSPy: declarative LM programs, auto-optimize prompts, RAG.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "huggingface-hub": {
+      "name": "huggingface-hub",
+      "path": ".hermes/skills/mlops/huggingface-hub",
+      "tags": [
+        "huggingface",
+        "hf",
+        "models",
+        "datasets",
+        "hub",
+        "mlops"
+      ],
+      "category": "",
+      "description": "HuggingFace hf CLI: search/download/upload models, datasets.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "fine-tuning-with-trl": {
+      "name": "fine-tuning-with-trl",
+      "path": ".hermes/skills/mlops/training/trl-fine-tuning",
+      "tags": [],
+      "category": "",
+      "description": "Fine-tune LLMs using reinforcement learning with TRL - SFT for instruction tunin",
+      "outgoing": [],
+      "incoming": []
+    },
+    "grpo-rl-training": {
+      "name": "grpo-rl-training",
+      "path": ".hermes/skills/mlops/training/grpo-rl-training",
+      "tags": [],
+      "category": "",
+      "description": "Expert guidance for GRPO/RL fine-tuning with TRL for reasoning and task-specific",
+      "outgoing": [],
+      "incoming": []
+    },
+    "peft-fine-tuning": {
+      "name": "peft-fine-tuning",
+      "path": ".hermes/skills/mlops/training/peft",
+      "tags": [],
+      "category": "",
+      "description": "Parameter-efficient fine-tuning for LLMs using LoRA, QLoRA, and 25+ methods. Use",
+      "outgoing": [],
+      "incoming": []
+    },
+    "axolotl": {
+      "name": "axolotl",
+      "path": ".hermes/skills/mlops/training/axolotl",
+      "tags": [],
+      "category": "",
+      "description": "Expert guidance for fine-tuning LLMs with Axolotl - YAML configs, 100+ models, L",
+      "outgoing": [],
+      "incoming": []
+    },
+    "pytorch-fsdp": {
+      "name": "pytorch-fsdp",
+      "path": ".hermes/skills/mlops/training/pytorch-fsdp",
+      "tags": [],
+      "category": "",
+      "description": "Expert guidance for Fully Sharded Data Parallel training with PyTorch FSDP - par",
+      "outgoing": [],
+      "incoming": []
+    },
+    "unsloth": {
+      "name": "unsloth",
+      "path": ".hermes/skills/mlops/training/unsloth",
+      "tags": [],
+      "category": "",
+      "description": "Expert guidance for fast fine-tuning with Unsloth - 2-5x faster training, 50-80%",
+      "outgoing": [],
+      "incoming": []
+    },
+    "audiocraft-audio-generation": {
+      "name": "audiocraft-audio-generation",
+      "path": ".hermes/skills/mlops/models/audiocraft",
+      "tags": [],
+      "category": "",
+      "description": "AudioCraft: MusicGen text-to-music, AudioGen text-to-sound.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "segment-anything-model": {
+      "name": "segment-anything-model",
+      "path": ".hermes/skills/mlops/models/segment-anything",
+      "tags": [],
+      "category": "",
+      "description": "SAM: zero-shot image segmentation via points, boxes, masks.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "clip": {
+      "name": "clip",
+      "path": ".hermes/skills/mlops/models/clip",
+      "tags": [],
+      "category": "",
+      "description": "OpenAI's model connecting vision and language. Enables zero-shot image classific",
+      "outgoing": [],
+      "incoming": []
+    },
+    "stable-diffusion-image-generation": {
+      "name": "stable-diffusion-image-generation",
+      "path": ".hermes/skills/mlops/models/stable-diffusion",
+      "tags": [],
+      "category": "",
+      "description": "State-of-the-art text-to-image generation with Stable Diffusion models via Huggi",
+      "outgoing": [],
+      "incoming": []
+    },
+    "whisper": {
+      "name": "whisper",
+      "path": ".hermes/skills/mlops/models/whisper",
+      "tags": [],
+      "category": "",
+      "description": "OpenAI's general-purpose speech recognition model. Supports 99 languages, transc",
+      "outgoing": [],
+      "incoming": []
+    },
+    "modal-serverless-gpu": {
+      "name": "modal-serverless-gpu",
+      "path": ".hermes/skills/mlops/cloud/modal",
+      "tags": [],
+      "category": "",
+      "description": "Serverless GPU cloud platform for running ML workloads. Use when you need on-dem",
+      "outgoing": [],
+      "incoming": []
+    },
+    "guidance": {
+      "name": "guidance",
+      "path": ".hermes/skills/mlops/inference/guidance",
+      "tags": [],
+      "category": "",
+      "description": "Control LLM output with regex and grammars, guarantee valid JSON/XML/code genera",
+      "outgoing": [],
+      "incoming": []
+    },
+    "gguf-quantization": {
+      "name": "gguf-quantization",
+      "path": ".hermes/skills/mlops/inference/gguf",
+      "tags": [],
+      "category": "",
+      "description": "GGUF format and llama.cpp quantization for efficient CPU/GPU inference. Use when",
+      "outgoing": [],
+      "incoming": []
+    },
+    "serving-llms-vllm": {
+      "name": "serving-llms-vllm",
+      "path": ".hermes/skills/mlops/inference/vllm",
+      "tags": [],
+      "category": "",
+      "description": "vLLM: high-throughput LLM serving, OpenAI API, quantization.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "obliteratus": {
+      "name": "obliteratus",
+      "path": ".hermes/skills/mlops/inference/obliteratus",
+      "tags": [],
+      "category": "",
+      "description": "OBLITERATUS: abliterate LLM refusals (diff-in-means).",
+      "outgoing": [
+        "obliteratus"
+      ],
+      "incoming": [
+        "obliteratus"
+      ]
+    },
+    "llama-cpp": {
+      "name": "llama-cpp",
+      "path": ".hermes/skills/mlops/inference/llama-cpp",
+      "tags": [],
+      "category": "",
+      "description": "llama.cpp local GGUF inference + HF Hub model discovery.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "outlines": {
+      "name": "outlines",
+      "path": ".hermes/skills/mlops/inference/outlines",
+      "tags": [],
+      "category": "",
+      "description": "Guarantee valid JSON/XML/code structure during generation, use Pydantic models f",
+      "outgoing": [],
+      "incoming": []
+    },
+    "evaluating-llms-harness": {
+      "name": "evaluating-llms-harness",
+      "path": ".hermes/skills/mlops/evaluation/lm-evaluation-harness",
+      "tags": [],
+      "category": "",
+      "description": "lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc.).",
+      "outgoing": [],
+      "incoming": []
+    },
+    "weights-and-biases": {
+      "name": "weights-and-biases",
+      "path": ".hermes/skills/mlops/evaluation/weights-and-biases",
+      "tags": [],
+      "category": "",
+      "description": "W&B: log ML experiments, sweeps, model registry, dashboards.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "interest-driven-onboarding": {
+      "name": "interest-driven-onboarding",
+      "path": ".hermes/skills/interest-driven-onboarding",
+      "tags": [],
+      "category": "",
+      "description": "AI 先通过员工的兴趣领域（金价、股票、运动等）自动推送资讯，培养员工接收和互动的习惯，再逐步过渡到记录-复习-拓展的学习闭环。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "ljg-rank": {
+      "name": "ljg-rank",
+      "path": ".hermes/skills/ljg-rank",
+      "tags": [],
+      "category": "",
+      "description": "给一个领域，找出背后真正撑着它的几根独立的力。十几个现象砍到不可再少的生成器——砍完能把现象一个个生回来，才算数。Use when user says '降秩'",
+      "outgoing": [
+        "feishu-api"
+      ],
+      "incoming": [
+        "skill-hub"
+      ]
+    },
+    "hermes-desktop-plugins": {
+      "name": "hermes-desktop-plugins",
+      "path": ".hermes/skills/hermes-desktop-plugins",
+      "tags": [],
+      "category": "",
+      "description": "Write desktop app plugins that add UI panes and commands.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "feishu-group-chat": {
+      "name": "feishu-group-chat",
+      "path": ".hermes/skills/feishu-group-chat",
+      "tags": [],
+      "category": "devops",
+      "description": "Manage AI agents in Feishu group chats — discover bots, @mention them, register ",
+      "outgoing": [
+        "agent-group-collab",
+        "lark-cli",
+        "multi-agent-orchestration"
+      ],
+      "incoming": [
+        "hermes-feishu-gateway",
+        "agent-group-collab",
+        "multi-agent-orchestration"
+      ]
+    },
+    "daily-session-summary": {
+      "name": "daily-session-summary",
+      "path": ".hermes/skills/daily-session-summary",
+      "tags": [],
+      "category": "productivity",
+      "description": "Generate a daily digest of Hermes conversations — key decisions, conclusions, an",
+      "outgoing": [
+        "lark-cli"
+      ],
+      "incoming": []
+    },
+    "mcporter": {
+      "name": "mcporter",
+      "path": ".hermes/skills/mcp/mcporter",
+      "tags": [],
+      "category": "",
+      "description": "Use the mcporter CLI to list, configure, auth, and call MCP servers/tools direct",
+      "outgoing": [
+        "mcporter"
+      ],
+      "incoming": [
+        "mcporter",
+        "native-mcp",
+        "my-coffee"
+      ]
+    },
+    "native-mcp": {
+      "name": "native-mcp",
+      "path": ".hermes/skills/mcp/native-mcp",
+      "tags": [],
+      "category": "",
+      "description": "MCP client: connect servers, register tools (stdio/HTTP).",
+      "outgoing": [
+        "mcporter"
+      ],
+      "incoming": []
+    },
+    "ebbinghaus-review": {
+      "name": "ebbinghaus-review",
+      "path": ".hermes/skills/ebbinghaus-review",
+      "tags": [],
+      "category": "",
+      "description": "每天早上9点从 Obsidian 知识图谱选取应复习的概念，结合用户最近分享的内容、历史背景、工作场景，生成多维度认知对话卡片。不再是测验，而是制造认知摩擦、激",
+      "outgoing": [
+        "feishu-api"
+      ],
+      "incoming": []
+    },
+    "no-fabrication": {
+      "name": "no-fabrication",
+      "path": ".hermes/skills/no-fabrication",
+      "tags": [],
+      "category": "",
+      "description": "Anti-hallucination guardrail: when you don't know a fact about the user's contex",
+      "outgoing": [],
+      "incoming": []
+    },
+    "ljg-learn": {
+      "name": "ljg-learn",
+      "path": ".hermes/skills/ljg-learn",
+      "tags": [],
+      "category": "",
+      "description": "Deep concept anatomist that deconstructs any concept through 8 exploration dimen",
+      "outgoing": [
+        "feishu-api"
+      ],
+      "incoming": []
+    },
+    "deep-grill": {
+      "name": "deep-grill",
+      "path": ".hermes/skills/deep-grill",
+      "tags": [
+        "TWS"
+      ],
+      "category": "",
+      "description": "Autonomously stress-test a plan or design before implementation.",
+      "outgoing": [
+        "grill-me"
+      ],
+      "incoming": []
+    },
+    "customer-research": {
+      "name": "customer-research",
+      "path": ".hermes/skills/customer-research",
+      "tags": [],
+      "category": "",
+      "description": "Use this skill to research customer-specific questions and investigate account c",
+      "outgoing": [
+        "c360-cli"
+      ],
+      "incoming": []
+    },
+    "chinese-user-voices": {
+      "name": "chinese-user-voices",
+      "path": ".hermes/skills/customer-research/chinese-user-voices",
+      "tags": [],
+      "category": "",
+      "description": "中国市场的\"用户声音\"调研方法论——通过百度贴吧、抖音、头条、小红书、拼多多等阵地验证产品痛点是否真实存在，弥补国内没有Reddit类平台的缺口。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "github-auth": {
+      "name": "github-auth",
+      "path": ".hermes/skills/github/github-auth",
+      "tags": [],
+      "category": "",
+      "description": "GitHub auth setup: HTTPS tokens, SSH keys, gh CLI login.",
+      "outgoing": [],
+      "incoming": [
+        "github-repo-management",
+        "github-pr-workflow",
+        "github-code-review",
+        "github-issues"
+      ]
+    },
+    "github-repo-management": {
+      "name": "github-repo-management",
+      "path": ".hermes/skills/github/github-repo-management",
+      "tags": [],
+      "category": "",
+      "description": "Clone/create/fork repos; manage remotes, releases.",
+      "outgoing": [
+        "github-auth"
+      ],
+      "incoming": []
+    },
+    "github-pr-workflow": {
+      "name": "github-pr-workflow",
+      "path": ".hermes/skills/github/github-pr-workflow",
+      "tags": [],
+      "category": "",
+      "description": "GitHub PR lifecycle: branch, commit, open, CI, merge.",
+      "outgoing": [
+        "github-auth"
+      ],
+      "incoming": []
+    },
+    "github-auth-async": {
+      "name": "github-auth-async",
+      "path": ".hermes/skills/github/github-auth-async",
+      "tags": [],
+      "category": "",
+      "description": "GitHub authentication when the user is on a messaging platform (Feishu, Slack, e",
+      "outgoing": [],
+      "incoming": []
+    },
+    "github-code-review": {
+      "name": "github-code-review",
+      "path": ".hermes/skills/github/github-code-review",
+      "tags": [],
+      "category": "",
+      "description": "Review PRs: diffs, inline comments via gh or REST.",
+      "outgoing": [
+        "github-auth"
+      ],
+      "incoming": [
+        "requesting-code-review"
+      ]
+    },
+    "github-issues": {
+      "name": "github-issues",
+      "path": ".hermes/skills/github/github-issues",
+      "tags": [],
+      "category": "",
+      "description": "Create, triage, label, assign GitHub issues via gh or REST.",
+      "outgoing": [
+        "github-auth"
+      ],
+      "incoming": []
+    },
+    "codebase-inspection": {
+      "name": "codebase-inspection",
+      "path": ".hermes/skills/github/codebase-inspection",
+      "tags": [],
+      "category": "",
+      "description": "Inspect codebases w/ pygount: LOC, languages, ratios.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "obsidian": {
+      "name": "obsidian",
+      "path": ".hermes/skills/note-taking/obsidian",
+      "tags": [],
+      "category": "",
+      "description": "Read, search, create, and edit notes in the Obsidian vault.",
+      "outgoing": [],
+      "incoming": [
+        "apple-notes"
+      ]
+    },
+    "客户AI场景需求整理": {
+      "name": "客户AI场景需求整理",
+      "path": ".hermes/skills/meeting/client-ai-scenario-extract",
+      "tags": [],
+      "category": "",
+      "description": "Generator+Evaluator 双阶段架构，从会议字幕中提取客户 AI 场景，校验后输出",
+      "outgoing": [],
+      "incoming": []
+    },
+    "godmode": {
+      "name": "godmode",
+      "path": ".hermes/skills/red-teaming/godmode",
+      "tags": [],
+      "category": "",
+      "description": "Jailbreak LLMs: Parseltongue, GODMODE, ULTRAPLINIAN.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "ljg-card": {
+      "name": "ljg-card",
+      "path": ".hermes/skills/ljg-card",
+      "tags": [],
+      "category": "",
+      "description": "Content caster (铸). Transforms content into PNG visuals. Seven molds: -l (defaul",
+      "outgoing": [],
+      "incoming": []
+    },
+    "apple-design": {
+      "name": "apple-design",
+      "path": ".hermes/skills/apple-design",
+      "tags": [],
+      "category": "",
+      "description": "Apple's approach to interface design and fluid, physical motion, translated for ",
+      "outgoing": [],
+      "incoming": []
+    },
+    "design-taste-frontend": {
+      "name": "design-taste-frontend",
+      "path": ".hermes/skills/design-taste-frontend",
+      "tags": [],
+      "category": "",
+      "description": "Anti-slop frontend skill for landing pages, portfolios, and redesigns. The agent",
+      "outgoing": [
+        "popular-web-designs"
+      ],
+      "incoming": [
+        "lark-cli"
+      ]
+    },
+    "knowledge-capture": {
+      "name": "knowledge-capture",
+      "path": ".hermes/skills/knowledge-capture",
+      "tags": [],
+      "category": "",
+      "description": "统一的知识捕获入口，只在用户明确要求持久化时触发（非自动）。 强制执行 Generator → Evaluator 质检流水线（三维度评分，<70% 禁止写入）",
+      "outgoing": [],
+      "incoming": []
+    },
+    "baoyu-design": {
+      "name": "baoyu-design",
+      "path": ".hermes/skills/baoyu-design",
+      "tags": [],
+      "category": "",
+      "description": "Create polished design artifacts as self-contained HTML: UI mockups, interactive",
+      "outgoing": [],
+      "incoming": []
+    },
+    "ideation": {
+      "name": "ideation",
+      "path": ".hermes/skills/creative/creative-ideation",
+      "tags": [],
+      "category": "",
+      "description": "Generate project ideas via creative constraints.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "comfyui": {
+      "name": "comfyui",
+      "path": ".hermes/skills/creative/comfyui",
+      "tags": [],
+      "category": "",
+      "description": "Generate images, video, and audio with ComfyUI — install, launch, manage nodes/m",
+      "outgoing": [],
+      "incoming": []
+    },
+    "baoyu-infographic": {
+      "name": "baoyu-infographic",
+      "path": ".hermes/skills/creative/baoyu-infographic",
+      "tags": [],
+      "category": "",
+      "description": "Infographics: 21 layouts x 21 styles (信息图, 可视化).",
+      "outgoing": [
+        "pixel-art"
+      ],
+      "incoming": []
+    },
+    "songwriting-and-ai-music": {
+      "name": "songwriting-and-ai-music",
+      "path": ".hermes/skills/creative/songwriting-and-ai-music",
+      "tags": [
+        "songwriting",
+        "music",
+        "suno",
+        "parody",
+        "lyrics",
+        "creative"
+      ],
+      "category": "",
+      "description": "Songwriting craft and Suno AI music prompts.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "ascii-video": {
+      "name": "ascii-video",
+      "path": ".hermes/skills/creative/ascii-video",
+      "tags": [],
+      "category": "",
+      "description": "ASCII video: convert video/audio to colored ASCII MP4/GIF.",
+      "outgoing": [],
+      "incoming": [
+        "pretext"
+      ]
+    },
+    "touchdesigner-mcp": {
+      "name": "touchdesigner-mcp",
+      "path": ".hermes/skills/creative/touchdesigner-mcp",
+      "tags": [],
+      "category": "",
+      "description": "Control a running TouchDesigner instance via twozero MCP — create operators, set",
+      "outgoing": [],
+      "incoming": []
+    },
+    "excalidraw": {
+      "name": "excalidraw",
+      "path": ".hermes/skills/creative/excalidraw",
+      "tags": [],
+      "category": "",
+      "description": "Hand-drawn Excalidraw JSON diagrams (arch, flow, seq).",
+      "outgoing": [],
+      "incoming": [
+        "architecture-diagram",
+        "sketch"
+      ]
+    },
+    "claude-design": {
+      "name": "claude-design",
+      "path": ".hermes/skills/creative/claude-design",
+      "tags": [],
+      "category": "",
+      "description": "Design one-off HTML artifacts (landing, deck, prototype).",
+      "outgoing": [
+        "claude-design",
+        "design-md",
+        "popular-web-designs"
+      ],
+      "incoming": [
+        "claude-design",
+        "design-md",
+        "popular-web-designs",
+        "sketch"
+      ]
+    },
+    "ascii-art": {
+      "name": "ascii-art",
+      "path": ".hermes/skills/creative/ascii-art",
+      "tags": [],
+      "category": "",
+      "description": "ASCII art: pyfiglet, cowsay, boxes, image-to-ascii.",
+      "outgoing": [],
+      "incoming": [
+        "pretext"
+      ]
+    },
+    "design-md": {
+      "name": "design-md",
+      "path": ".hermes/skills/creative/design-md",
+      "tags": [],
+      "category": "",
+      "description": "Author/validate/export Google's DESIGN.md token spec files.",
+      "outgoing": [
+        "claude-design",
+        "popular-web-designs"
+      ],
+      "incoming": [
+        "claude-design",
+        "popular-web-designs"
+      ]
+    },
+    "baoyu-comic": {
+      "name": "baoyu-comic",
+      "path": ".hermes/skills/creative/baoyu-comic",
+      "tags": [],
+      "category": "",
+      "description": "Knowledge comics (知识漫画): educational, biography, tutorial.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "popular-web-designs": {
+      "name": "popular-web-designs",
+      "path": ".hermes/skills/creative/popular-web-designs",
+      "tags": [
+        "design",
+        "css",
+        "html",
+        "ui",
+        "web-development",
+        "design-systems",
+        "templates"
+      ],
+      "category": "",
+      "description": "54 real design systems (Stripe, Linear, Vercel) as HTML/CSS.",
+      "outgoing": [
+        "claude-design",
+        "design-md"
+      ],
+      "incoming": [
+        "design-taste-frontend",
+        "claude-design",
+        "design-md",
+        "lark-cli"
+      ]
+    },
+    "manim-video": {
+      "name": "manim-video",
+      "path": ".hermes/skills/creative/manim-video",
+      "tags": [],
+      "category": "",
+      "description": "Manim CE animations: 3Blue1Brown math/algo videos.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "pixel-art": {
+      "name": "pixel-art",
+      "path": ".hermes/skills/creative/pixel-art",
+      "tags": [],
+      "category": "",
+      "description": "Pixel art w/ era palettes (NES, Game Boy, PICO-8).",
+      "outgoing": [],
+      "incoming": [
+        "baoyu-infographic"
+      ]
+    },
+    "pretext": {
+      "name": "pretext",
+      "path": ".hermes/skills/creative/pretext",
+      "tags": [],
+      "category": "",
+      "description": "Use when building creative browser demos with @chenglou/pretext — DOM-free text ",
+      "outgoing": [
+        "ascii-art",
+        "ascii-video",
+        "p5js"
+      ],
+      "incoming": []
+    },
+    "baoyu-article-illustrator": {
+      "name": "baoyu-article-illustrator",
+      "path": ".hermes/skills/creative/baoyu-article-illustrator",
+      "tags": [],
+      "category": "",
+      "description": "Article illustrations: type × style × palette consistency.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "humanizer": {
+      "name": "humanizer",
+      "path": ".hermes/skills/creative/humanizer",
+      "tags": [],
+      "category": "",
+      "description": "Humanize text: strip AI-isms and add real voice.",
+      "outgoing": [],
+      "incoming": [
+        "multi-agent-orchestration"
+      ]
+    },
+    "p5js": {
+      "name": "p5js",
+      "path": ".hermes/skills/creative/p5js",
+      "tags": [],
+      "category": "",
+      "description": "p5.js sketches: gen art, shaders, interactive, 3D.",
+      "outgoing": [],
+      "incoming": [
+        "pretext"
+      ]
+    },
+    "architecture-diagram": {
+      "name": "architecture-diagram",
+      "path": ".hermes/skills/creative/architecture-diagram",
+      "tags": [],
+      "category": "",
+      "description": "Dark-themed SVG architecture/cloud/infra diagrams as HTML.",
+      "outgoing": [
+        "excalidraw"
+      ],
+      "incoming": [
+        "sketch"
+      ]
+    },
+    "sketch": {
+      "name": "sketch",
+      "path": ".hermes/skills/creative/sketch",
+      "tags": [],
+      "category": "",
+      "description": "Throwaway HTML mockups: 2-3 design variants to compare.",
+      "outgoing": [
+        "architecture-diagram",
+        "claude-design",
+        "excalidraw"
+      ],
+      "incoming": []
+    },
+    "review-animations": {
+      "name": "review-animations",
+      "path": ".hermes/skills/review-animations",
+      "tags": [],
+      "category": "",
+      "description": "Reviews animation and motion code against a high craft bar derived from Emil Kow",
+      "outgoing": [],
+      "incoming": [
+        "find-animation-opportunities",
+        "improve-animations"
+      ]
+    },
+    "feishu-card-send": {
+      "name": "feishu-card-send",
+      "path": ".hermes/skills/feishu-card-send",
+      "tags": [],
+      "category": "feishu",
+      "description": "Send structured content as Feishu interactive cards via bot — correct <font> syn",
+      "outgoing": [],
+      "incoming": [
+        "feishu-meeting-listen"
+      ]
+    },
+    "animation-vocabulary": {
+      "name": "animation-vocabulary",
+      "path": ".hermes/skills/animation-vocabulary",
+      "tags": [],
+      "category": "",
+      "description": "Reverse-lookup glossary that turns a vague description of a web animation or mot",
+      "outgoing": [],
+      "incoming": [
+        "skill-hub"
+      ]
+    },
+    "ljg-plain": {
+      "name": "ljg-plain",
+      "path": ".hermes/skills/ljg-plain",
+      "tags": [],
+      "category": "",
+      "description": "Cognitive atom: Plain (白). Rewrites any content so a smart 12-year-old groks it.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "computer-use": {
+      "name": "computer-use",
+      "path": ".hermes/skills/computer-use",
+      "tags": [],
+      "category": "",
+      "description": "Drive the user's desktop in the background — clicking, typing,\nscrolling, draggi",
+      "outgoing": [],
+      "incoming": []
+    },
+    "emil-design-eng": {
+      "name": "emil-design-eng",
+      "path": ".hermes/skills/emil-design-eng",
+      "tags": [],
+      "category": "",
+      "description": "This skill encodes Emil Kowalski's philosophy on UI polish, component design, an",
+      "outgoing": [],
+      "incoming": []
+    },
+    "grill-me": {
+      "name": "grill-me",
+      "path": ".hermes/skills/grill-me",
+      "tags": [],
+      "category": "",
+      "description": "A relentless interview to sharpen a plan or design.",
+      "outgoing": [],
+      "incoming": [
+        "deep-grill"
+      ]
+    },
+    "himalaya": {
+      "name": "himalaya",
+      "path": ".hermes/skills/email/himalaya",
+      "tags": [],
+      "category": "",
+      "description": "Himalaya CLI: IMAP/SMTP email from terminal.",
+      "outgoing": [
+        "himalaya"
+      ],
+      "incoming": [
+        "himalaya",
+        "google-workspace"
+      ]
+    },
+    "openhue": {
+      "name": "openhue",
+      "path": ".hermes/skills/smart-home/openhue",
+      "tags": [],
+      "category": "",
+      "description": "Control Philips Hue lights, scenes, rooms via OpenHue CLI.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "claude-code": {
+      "name": "claude-code",
+      "path": ".hermes/skills/autonomous-ai-agents/claude-code",
+      "tags": [],
+      "category": "",
+      "description": "Delegate coding to Claude Code CLI (features, PRs).",
+      "outgoing": [
+        "plan"
+      ],
+      "incoming": []
+    },
+    "kanban-codex-lane": {
+      "name": "kanban-codex-lane",
+      "path": ".hermes/skills/autonomous-ai-agents/kanban-codex-lane",
+      "tags": [],
+      "category": "",
+      "description": "Use when a Hermes Kanban worker wants to run Codex CLI as an isolated implementa",
+      "outgoing": [],
+      "incoming": []
+    },
+    "codex": {
+      "name": "codex",
+      "path": ".hermes/skills/autonomous-ai-agents/codex",
+      "tags": [],
+      "category": "",
+      "description": "Delegate coding to OpenAI Codex CLI (features, PRs).",
+      "outgoing": [],
+      "incoming": []
+    },
+    "multi-agent-orchestration": {
+      "name": "multi-agent-orchestration",
+      "path": ".hermes/skills/autonomous-ai-agents/multi-agent-orchestration",
+      "tags": [],
+      "category": "autonomous-ai-agents",
+      "description": "Hermes 作为主 Orchestrator，按任务类型分拆并 delegate 给 Codex/Claude Code 等外部 Agent 并行执行，最后合",
+      "outgoing": [
+        "feishu-group-chat",
+        "humanizer"
+      ],
+      "incoming": [
+        "feishu-group-chat"
+      ]
+    },
+    "hermes-agent": {
+      "name": "hermes-agent",
+      "path": ".hermes/skills/autonomous-ai-agents/hermes-agent",
+      "tags": [],
+      "category": "",
+      "description": "Configure, extend, or contribute to Hermes Agent.",
+      "outgoing": [
+        "spotify",
+        "yuanbao"
+      ],
+      "incoming": []
+    },
+    "opencode": {
+      "name": "opencode",
+      "path": ".hermes/skills/autonomous-ai-agents/opencode",
+      "tags": [],
+      "category": "",
+      "description": "Delegate coding to OpenCode CLI (features, PR review).",
+      "outgoing": [
+        "opencode"
+      ],
+      "incoming": [
+        "opencode"
+      ]
+    },
+    "dogfood": {
+      "name": "dogfood",
+      "path": ".hermes/skills/dogfood",
+      "tags": [],
+      "category": "",
+      "description": "Exploratory QA of web apps: find bugs, evidence, reports.",
+      "outgoing": [],
+      "incoming": [
+        "hermes-agent-skill-authoring"
+      ]
+    },
+    "nano-pdf": {
+      "name": "nano-pdf",
+      "path": ".hermes/skills/productivity/nano-pdf",
+      "tags": [],
+      "category": "",
+      "description": "Edit PDF text/typos/titles via nano-pdf CLI (NL prompts).",
+      "outgoing": [],
+      "incoming": []
+    },
+    "maps": {
+      "name": "maps",
+      "path": ".hermes/skills/productivity/maps",
+      "tags": [],
+      "category": "",
+      "description": "Geocode, POIs, routes, timezones via OpenStreetMap/OSRM.",
+      "outgoing": [
+        "find-nearby"
+      ],
+      "incoming": []
+    },
+    "teams-meeting-pipeline": {
+      "name": "teams-meeting-pipeline",
+      "path": ".hermes/skills/productivity/teams-meeting-pipeline",
+      "tags": [],
+      "category": "",
+      "description": "Operate the Teams meeting summary pipeline via Hermes CLI — summarize meetings, ",
+      "outgoing": [],
+      "incoming": []
+    },
+    "c360-cli": {
+      "name": "c360-cli",
+      "path": ".hermes/skills/productivity/c360-cli",
+      "tags": [],
+      "category": "productivity",
+      "description": "Use lark-c360 CLI to look up customer accounts, profiles, follow-up records, opp",
+      "outgoing": [],
+      "incoming": [
+        "customer-research"
+      ]
+    },
+    "my-coffee": {
+      "name": "my-coffee",
+      "path": ".hermes/skills/productivity/my-coffee",
+      "tags": [],
+      "category": "",
+      "description": "Use when users ask to order Luckin Coffee, search Luckin stores/products, query ",
+      "outgoing": [
+        "mcporter",
+        "my-coffee"
+      ],
+      "incoming": [
+        "chinese-search-workaround",
+        "my-coffee"
+      ]
+    },
+    "bolt-slides": {
+      "name": "bolt-slides",
+      "path": ".hermes/skills/productivity/bolt-slides",
+      "tags": [],
+      "category": "",
+      "description": "Use when the user specifically requests Bolt Slides or chooses an interactive, r",
+      "outgoing": [],
+      "incoming": []
+    },
+    "supabase-auth-otp-v2": {
+      "name": "supabase-auth-otp-v2",
+      "path": ".hermes/skills/productivity/supabase-auth-otp-v2",
+      "tags": [],
+      "category": "productivity",
+      "description": "Supabase Auth v2 phone SMS OTP login — signInWithOtp + verifyOtp correct API usa",
+      "outgoing": [],
+      "incoming": []
+    },
+    "share-material-review": {
+      "name": "share-material-review",
+      "path": ".hermes/skills/productivity/share-material-review",
+      "tags": [],
+      "category": "",
+      "description": "当用户分享材料（PPT、文档、演讲内容等），按照内容层面 + 呈现/传播层面的双维度框架进行系统性评估，给出优化方向的反馈。",
+      "outgoing": [],
+      "incoming": []
+    },
+    "linear": {
+      "name": "linear",
+      "path": ".hermes/skills/productivity/linear",
+      "tags": [],
+      "category": "",
+      "description": "Linear: manage issues, projects, teams via GraphQL + curl.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "manager-ai-onboarding": {
+      "name": "manager-ai-onboarding",
+      "path": ".hermes/skills/productivity/manager-ai-onboarding",
+      "tags": [],
+      "category": "productivity",
+      "description": "帮助非技术背景的管理者从 0 到 1 完成 AI 转型——以管理场景为锚点、以晋升/绩效为动力、以操作手册为交付物。触发词：帮 leader 学 AI、管理者 ",
+      "outgoing": [],
+      "incoming": []
+    },
+    "xianyu-listing-writer": {
+      "name": "xianyu-listing-writer",
+      "path": ".hermes/skills/productivity/xianyu-listing-writer",
+      "tags": [],
+      "category": "productivity",
+      "description": "根据用户的个人背景、技能特长和服务内容，生成闲鱼（Xianyu）虚拟服务/知识付费类商品的发布文案（标题+正文）。包含闲鱼平台的特殊规则约束。采用 Genera",
+      "outgoing": [],
+      "incoming": []
+    },
+    "renewal-proposal": {
+      "name": "renewal-proposal",
+      "path": ".hermes/skills/productivity/renewal-proposal",
+      "tags": [],
+      "category": "productivity",
+      "description": "Generate customer renewal proposals by pulling C360 CLI data (products, seats, p",
+      "outgoing": [],
+      "incoming": []
+    },
+    "notion": {
+      "name": "notion",
+      "path": ".hermes/skills/productivity/notion",
+      "tags": [],
+      "category": "",
+      "description": "Notion API + ntn CLI: pages, databases, markdown, Workers.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "workshop-interest-activation": {
+      "name": "workshop-interest-activation",
+      "path": ".hermes/skills/productivity/workshop-interest-activation",
+      "tags": [],
+      "category": "productivity",
+      "description": "培训/分享/工作坊的事前兴趣激活设计——基于 SDT、JTBD、ARCS、Mezirow 四框架，通过课前痛点问卷 + 开场困境→顿悟流程，让听众从「被教」变成",
+      "outgoing": [],
+      "incoming": []
+    },
+    "airtable": {
+      "name": "airtable",
+      "path": ".hermes/skills/productivity/airtable",
+      "tags": [],
+      "category": "",
+      "description": "Airtable REST API via curl. Records CRUD, filters, upserts.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "opportunity-cross-analysis": {
+      "name": "opportunity-cross-analysis",
+      "path": ".hermes/skills/productivity/opportunity-cross-analysis",
+      "tags": [],
+      "category": "productivity",
+      "description": "Cross-reference meeting intelligence with Base/C360 system-of-record data to pro",
+      "outgoing": [],
+      "incoming": []
+    },
+    "powerpoint": {
+      "name": "powerpoint",
+      "path": ".hermes/skills/productivity/powerpoint",
+      "tags": [],
+      "category": "",
+      "description": "Create, read, edit .pptx decks, slides, notes, templates.",
+      "outgoing": [],
+      "incoming": [
+        "ocr-and-documents"
+      ]
+    },
+    "memory-management": {
+      "name": "memory-management",
+      "path": ".hermes/skills/productivity/memory-management",
+      "tags": [],
+      "category": "productivity",
+      "description": "Maintain Hermes memory — [stated] enforcement, domain routing, privacy redlines,",
+      "outgoing": [],
+      "incoming": []
+    },
+    "lark-cli": {
+      "name": "lark-cli",
+      "path": ".hermes/skills/productivity/lark-cli",
+      "tags": [],
+      "category": "productivity",
+      "description": "Official Feishu/Lark CLI (@larksuite/cli) — the single unified CLI for all Feish",
+      "outgoing": [
+        "design-taste-frontend",
+        "lark-cli",
+        "popular-web-designs"
+      ],
+      "incoming": [
+        "beautiful-feishu-whiteboard",
+        "feishu-api",
+        "feishu-group-chat",
+        "daily-session-summary",
+        "lark-cli",
+        "meeting-audit"
+      ]
+    },
+    "side-hustle-planning": {
+      "name": "side-hustle-planning",
+      "path": ".hermes/skills/productivity/side-hustle-planning",
+      "tags": [],
+      "category": "productivity",
+      "description": "跨境电商副业冷启动规划——平台对比、投流成本测算、品类分析。当用户讨论副业、电商起号、选平台、算成本时触发。",
+      "outgoing": [
+        "chinese-search-workaround",
+        "meeting-audit",
+        "three-stage-pipeline"
+      ],
+      "incoming": []
+    },
+    "weekly-deep-read": {
+      "name": "weekly-deep-read",
+      "path": ".hermes/skills/productivity/weekly-deep-read",
+      "tags": [],
+      "category": "",
+      "description": "每周日从微信读书全库中，基于用户当前认知版图（Obsidian概念盲区 + 近期兴趣 + 阅读历史），推荐最适合的一本书的一个章节，制造认知摩擦。不同于每日认知",
+      "outgoing": [],
+      "incoming": []
+    },
+    "google-workspace": {
+      "name": "google-workspace",
+      "path": ".hermes/skills/productivity/google-workspace",
+      "tags": [],
+      "category": "",
+      "description": "Gmail, Calendar, Drive, Docs, Sheets via gws CLI or Python.",
+      "outgoing": [
+        "himalaya"
+      ],
+      "incoming": []
+    },
+    "ocr-and-documents": {
+      "name": "ocr-and-documents",
+      "path": ".hermes/skills/productivity/ocr-and-documents",
+      "tags": [],
+      "category": "",
+      "description": "Extract text from PDFs/scans (pymupdf, marker-pdf).",
+      "outgoing": [
+        "powerpoint"
+      ],
+      "incoming": [
+        "arxiv"
+      ]
+    },
+    "petdex": {
+      "name": "petdex",
+      "path": ".hermes/skills/productivity/petdex",
+      "tags": [],
+      "category": "",
+      "description": "Install and select animated petdex mascots for Hermes.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "meeting-audit": {
+      "name": "meeting-audit",
+      "path": ".hermes/skills/productivity/meeting-audit",
+      "tags": [],
+      "category": "productivity",
+      "description": "飞书会议能力全集 — 静默旁听字幕/聊天，或入会语音对话（ByteView + 豆包实时语音）。Agent 按需选择静默或发言模式。",
+      "outgoing": [
+        "lark-cli"
+      ],
+      "incoming": [
+        "feishu-meeting-listen",
+        "side-hustle-planning"
+      ]
+    },
+    "youtube-content": {
+      "name": "youtube-content",
+      "path": ".hermes/skills/media/youtube-content",
+      "tags": [],
+      "category": "",
+      "description": "YouTube transcripts to summaries, threads, blogs.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "heartmula": {
+      "name": "heartmula",
+      "path": ".hermes/skills/media/heartmula",
+      "tags": [],
+      "category": "",
+      "description": "HeartMuLa: Suno-like song generation from lyrics + tags.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "spotify": {
+      "name": "spotify",
+      "path": ".hermes/skills/media/spotify",
+      "tags": [],
+      "category": "",
+      "description": "Spotify: play, search, queue, manage playlists and devices.",
+      "outgoing": [],
+      "incoming": [
+        "hermes-agent"
+      ]
+    },
+    "songsee": {
+      "name": "songsee",
+      "path": ".hermes/skills/media/songsee",
+      "tags": [],
+      "category": "",
+      "description": "Audio spectrograms/features (mel, chroma, MFCC) via CLI.",
+      "outgoing": [],
+      "incoming": []
+    },
+    "gif-search": {
+      "name": "gif-search",
+      "path": ".hermes/skills/media/gif-search",
+      "tags": [],
+      "category": "",
+      "description": "Search/download GIFs from Tenor via curl + jq.",
+      "outgoing": [],
+      "incoming": []
+    }
+  },
+  "total": 205
+}
