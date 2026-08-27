@@ -77,6 +77,41 @@ lark-c360 account +usage --id <account_id> --json
 - 🟡 中：predict 150-300% 或 剩余 15-30 天 → 本周安排接触
 - 🟢 弱：predict 100-150% 或 DAU 环比增长 → 观察跟进
 
+## V2 跟进记录增强（2026-08-27 实测）
+
+V1 的通病：所有信号客户的动作是同一句模板话术（"约 AI 第一负责人，带用量数据谈升级"）——既没承接真实对话，也没发现"数据在报警、人在沉默"的空窗。V2 增加跟进扫描 + Agent 动作增强：
+
+### 跟进扫描（脚本 fetch_followups.py）
+
+```bash
+cd ~/.hermes/skills/feishu/ai-win-opportunity-radar/scripts
+python3 fetch_followups.py [--days 14]   # 读 /tmp/radar_result.json → 输出 /tmp/radar_followups.json
+```
+
+- 对每个信号客户拉 `follow_up +recent --account-id <id> --field follow_date --field content --limit 30`
+- 过滤近 N 天（默认 14 天）+ AI 关键词，每个客户最多留 3 条 AI 命中（截断 500 字符）
+- 输出结构：`{客户名: {ai_hits: [{date, content}], any_followup: bool, total_14d: N}}`
+- `any_followup=false` 表示近两周连普通跟进都没有 → 这是重要洞察，不是缺失数据
+
+**AI 关键词清单**：`ai / AI / 豆包 / 智能 / 知识库 / 机器人 / 额度 / 消耗 / 用量 / 模型 / 纪要 / 多维 / 助手 / 工作伙伴 / 大模型 / 激活 / 训练 / 场景 / 升级 / 采购 / 续费 / 到期 / 演示 / 培训`
+
+### 动作增强规则（Agent 写 /tmp/radar_actions.json）
+
+逐户手写动作，禁止全员套模板。规则：
+
+1. **有 AI 跟进**：动作必须承接跟进内容——交付已承诺材料 / 关闭卡住的流程 / 换正确场景重聊（上次话题错位就换）/ 给具体演示 agenda（上次邀约太泛没答复就带清单）。例：客户已问"版本区别"= 升级话题已由客户开启；客户在等费用流程 = 先关流程再谈。
+2. **无跟进**：动作 = 首次 AI 触达，用消耗数据敲门（"按当前速度 X 天用完"），按指标分化：
+   - mom 高 → 问什么场景在涨（如零壹 mom+138.5% → 先搞清什么在爆）
+   - mom 负 → 先诊断用量下滑是场景萎缩还是封顶（如唯迹 -26.3%）
+   - DAU 高 → 摸清谁在用、哪些场景（如凯迪仕 DAU 467）
+   - 剩余天数少（<15）→ 紧急对话，先确认续费/升级意向
+   - 剩余天数多（>100）→ 不逼单，轻触达为下季度铺路
+3. **Evaluator 打回的客户**：标记 ⚠️ 到期/异常节点，动作 = 确认续费/到期状态，**不用升级话术**。实测案例：机智连接 predict=100% 被标强 → 打回，实为额度耗尽/到期节点。
+4. **排序**：卡片按剩余天数升序（紧急优先），到期节点最前。
+5. **诚实标注**：卡片 note 必须如实写 Evaluator 结果（"X 条通过 + Y 条打回"），有打回时不许写"全部通过"。
+
+动作文件格式：`/tmp/radar_actions.json` = `{客户名: "动作文本"}`。send_radar_card.py 优先用 Agent 动作，缺省才用模板兜底（兜底动作会标注"建议改写"）。
+
 ## Generator / Evaluator 双角色流程
 
 ```
@@ -84,7 +119,12 @@ lark-c360 account +usage --id <account_id> --json
 │ 1. 枚举名下客户 → 逐个拉数据            │
 │ 2. 按信号清单判定 → 输出候选机会列表     │
 │ 3. 每条结论必须带数据引用（字段名+值）   │
-│ 4. 推荐动作（来自主题34打法库）          │
+└──────────────┬───────────────────────────┘
+               ▼
+┌─ 跟进扫描（V2）─────────────────────────┐
+│ 4. 对每个信号客户拉近14天 follow_up      │
+│ 5. 过滤 AI 关键词 → 输出跟进摘要         │
+│ 6. Agent 按动作增强规则逐户写动作        │
 └──────────────┬───────────────────────────┘
                ▼
 ┌─ Evaluator ─────────────────────────────┐
@@ -97,22 +137,33 @@ lark-c360 account +usage --id <account_id> --json
         飞书总览卡片（数据来源+时间戳）
 ```
 
-## 输出卡片格式
+## 输出卡片格式（V2）
 
 一张总览卡片，结构：
-- Header：📡 AI 赢单商机雷达 | 第 X 周（日期范围）
-- 顶部统计：扫描客户数 / 强信号 / 中信号 / 弱信号
-- 每个信号客户一块：客户名（脱敏可选）+ 当前档位 → 建议升级档位 + 信号依据（具体数值）+ 推荐动作
-- 底部 note：数据来源 + 抓取时间 + Evaluator 校验结论
+- Header：📡 AI 赢单商机雷达 V2 | MM-DD 扫描
+- 顶部统计：强信号（本周必须动作）/ 中信号（本周安排接触）/ 到期节点（非升级信号）
+- 💡 跟进洞察行（有跟进数据时）：X 家有近两周 AI 对话，Y 家无任何跟进
+- 每个信号客户一块：客户名 + 信号强度（打回客户标 ⚠️ 到期/异常）+ 当前档位 → 建议升级档位 + 信号依据（具体数值）+ 📋 近两周跟进摘要 + ✅ 本周动作（Agent 基于跟进手写）
+- 底部 note：数据来源（tenant_metrics + follow_up）+ 抓取时间 + Evaluator 校验（如实写通过/打回数）+ 阈值版本
 
 **脱敏选项**：内部用保留客户名；对外分享用「某+行业+企业」。
 
 ## 定时任务（cron）
 
-每周一早上 9:00 自动跑：
+每周一早上 9:00 自动跑（job: 755f8ece681d）：
 - cron schedule: `0 9 * * 1`
-- 加载本 skill → 执行全流程 → 输出卡片到 Home
+- 加载本 skill → 执行全流程（radar_full.py → fetch_followups.py → Agent 写 actions → send_radar_card.py）→ 输出卡片到 Home
 - 手动触发：用户说「跑一下商机雷达」→ 手动执行
+
+全流程命令（三脚本 + 一步 Agent 写作）：
+
+```bash
+cd ~/.hermes/skills/feishu/ai-win-opportunity-radar/scripts
+python3 radar_full.py          # 1. 信号扫描 → /tmp/radar_result.json
+python3 fetch_followups.py     # 2. 近14天AI跟进扫描 → /tmp/radar_followups.json
+# 3. Agent 读两个 JSON，按「动作增强规则」写 /tmp/radar_actions.json
+python3 send_radar_card.py     # 4. 组装V2卡片发 Home
+```
 
 ## 注意事项
 
@@ -128,3 +179,4 @@ lark-c360 account +usage --id <account_id> --json
 7. **C360 CLI 版本**：当前 1.2.10；filter-json DSL 在 CLI 对 account/opportunity 均不可用（试遍 type: leaf/term/item/filter/condition 全报 unsupported）——不要在 filter 语法上浪费时间
 8. **Evaluator 是校验器不是生成器**：只删不改，发现异常打回 Generator 重跑该客户
 9. **阈值可调**：信号清单阈值写在脚本常量区，方便根据实际命中率调整
+10. **account_id 禁止手动转写**（2026-08-27 实测翻车）：手敲 `0010o00002tr5GYAY` 漏了一个字符（正确 `0010o00002tr5GYAAY`），导致凯迪仕 3 条 AI 跟进被漏查、误判"无跟进"。脚本（fetch_followups.py）直接读 radar_result.json 的 `account_id` 字段，天然免疫——任何手动转写客户 ID 的环节都是 bug 源头
