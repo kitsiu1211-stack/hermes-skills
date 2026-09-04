@@ -96,6 +96,12 @@ git push origin main
    grep -rn 'API_KEY=' <skill-dirs>/config/
    ```
    发现后替换为占位符（`sk-your-api-key-here`）再提交。如已被阻断，`git reset HEAD~1` 回退后修复。
+3. **⚠️ feishu-meeting-listen 含真实密钥文件清单（2026-09-04 实测被 GH013 拦截）** — 本地源文件写死/记录了真实密钥（豆包 TTS、Fish Audio、DeepSeek、DashScope），rsync 同步该 skill 时必须排除，镜像仓库保留脱敏占位版，禁止覆盖：
+   - `config/.env`（DEEPSEEK/DASHSCOPE 已脱敏，DOUBAO/FISH/ARK 仍是真实值——历史遗留，建议用户轮换）
+   - `scripts/meeting_speaker.py`（API_KEY 硬编码）
+   - `references/in-meeting-voice.md`、`references/fish-audio-tts.md`（文档内嵌 Key）
+   rsync 命令：`rsync -a --exclude='.git' --exclude='config/.env' --exclude='scripts/meeting_speaker.py' --exclude='references/in-meeting-voice.md' --exclude='references/fish-audio-tts.md' <src>/ /tmp/hermes-skills/feishu-meeting-listen/`
+   其他 skill 推送前若命中真实密钥，同样先脱敏镜像副本再提交（本地原版保留可运行）。
 3. **终端工具中避免 `&&` 链式命令** — Hermes Gateway 可能将 `&&` 链误判为危险操作并拒绝执行。改用分步命令：
    - `git add <dirs/>`（可多目录一步）
    - `git commit -m "..."`（双引号）
