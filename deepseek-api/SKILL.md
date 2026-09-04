@@ -37,6 +37,27 @@ Flash 三条线基本是 Pro 的约 1/3 价格。
 2. **模型名/版本**：任意 API docs 页用 `curl -sL` 就能看到模型名和底层版本号，不需要浏览器。
 3. 用户画像要求「结论需官方来源验证」——涉及价格、模型能力，先查官方 docs 再下结论，别引用二手公众号数字当事实。
 
+## 视觉模型 deepseek-v4-flash-vision-exp（2026-08-21 上线，实验性）
+
+官方文档 `https://api-docs.deepseek.com/zh-cn/guides/vision` 验证。**当前 Hermes 默认的 flash/pro 都不支持图片**（传图返回 400 "This model does not support image"），必须显式指定视觉模型名：
+
+- 模型名：`deepseek-v4-flash-vision-exp`（实验性，不是正式版）
+- 能力：描述图片、识别截图文字、分析图表
+- 格式：JPEG/PNG/GIF/WebP（按实际内容判断，不看扩展名）
+- 调用：OpenAI 兼容格式 `content` 为 block 数组（`image_url` 或 `file_data`）；Responses API 用 `input_image`
+- 三种传图：Base64 内联 / 外部 URL / Files API（>32MiB 或重复引用用 Files API）
+- **Token 计费**：图片自动缩放至约 800×800（<384×384 放大），**每张图 token 上限 384**——2000×2000 和 5000×5000 的图消耗相同；`detail=low` 缩到 512×512 更快更省
+- 限制：图片只能在 user 消息（system/assistant 带图报 400）；请求体 48MiB；单图 base64/URL 32MiB、Files API 64MiB；最多 600 张/请求；单边最长 8192px（≥15 张降为 4096px）
+
+**实测对比（2026-08-21，销售柱状图：OCR 数字 + 增长率验算 + 质疑数据矛盾）**：
+- 视觉理解与 MiniMax `abab6.5s-chat` 打平（OCR/验算/质疑都过）
+- DeepSeek 快 40%（5.3s vs 8.7s）、token 少 8 倍（950 vs 4371，含 reasoning 280 token）
+- MiniMax 视觉走 `abab6.5s-chat` 模型（OpenAI 兼容，`https://api.minimax.chat/v1/text/chatcompletion_v2`）
+
+**Hermes 接入**：`auxiliary.vision` 已配为 deepseek-v4-flash-vision-exp + base_url https://api.deepseek.com/v1 + api_key 留空（自动读 DEEPSEEK_API_KEY）。`agent.image_input_mode: auto` 下，主模型（flash 无视觉）收到用户图片 → 自动走 auxiliary.vision 描述后再交主模型。
+- ⚠️ 坑：`auxiliary.vision.api_key` 写成 `env:DEEPSEEK_API_KEY` 会 401（不解析），必须留空字符串让系统自动读环境变量
+- ⚠️ 时间线：8/24 前拿 2 个合规认证（互联网智能体治理 + OpenClaw 基准测试）
+
 ## 涨价/切模型的判断口径（本用户场景）
 
 - 别只看「缓存命中涨 N 倍」这种标题党数字。命中价基数极小（$0.0036→$0.044），涨 12 倍绝对值仍可忽略。

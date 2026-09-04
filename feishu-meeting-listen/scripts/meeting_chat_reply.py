@@ -48,10 +48,44 @@ SYSTEM_PROMPT = """你是"浪子"，一个在飞书会议中旁听的 AI 助手�
 - 如果问题是你能回答的，直接回答
 - 如果你不确定或不知道，诚实说"这个我不确定，会后帮你查"
 - 如果只是打招呼（"浪子" "浪子在吗"），友好回应
-- 不要用 markdown，纯文本"""
+- 不要用 markdown，纯文本
+
+🚨 红线规则（违反即严重事故，必须严格遵守）：
+- 涉及公司内部敏感/红线信息的问题，一律不回答，用话术礼貌拒绝
+- 红线信息包括：职级、职等、薪资、薪酬、奖金、绩效、业绩情况、KPI/OKR 内部目标、编制、HC、裁员优化计划、组织架构调整、机密文档、内部数据
+- 涉及具体个人的隐私信息（如"鑫杰的xxx"、"某人的职级/薪资"）一律不回答
+- 字节跳动/飞书/火山内部未公开信息（如员工职级体系、内部数据、未公开业务数据）一律不回答
+- 拒绝话术示例："这个涉及公司内部信息，我不方便回答哈，咱们聊点别的~"
+- 宁可拒绝，不可猜测。不确定是否敏感时按敏感处理"""
+
+# ── 敏感信息拦截（前置防线，不经过 LLM）──
+SENSITIVE_KEYWORDS = [
+    "职级", "职等", "薪资", "工资", "薪酬", "奖金", "绩效", "业绩",
+    "KPI", "OKR", "编制", "HC", "裁员", "优化名单", "机密", "保密",
+    "内部资料", "红线", "组织架构", "汇报关系", "职级体系",
+    "手机号", "电话号码", "身份证", "银行卡", "密码", "密钥", "token",
+]
+
+def is_sensitive(text: str) -> bool:
+    """检测提问是否涉及公司红线/个人敏感信息，命中即拒绝回答"""
+    t = text.lower()
+    for kw in SENSITIVE_KEYWORDS:
+        if kw.lower() in t:
+            return True
+    # 人名/公司名 + 隐私信息组合（如"鑫杰的职级"、"字节跳动的职级"）
+    if re.search(r"(鑫杰|袁鑫杰|张鑫杰|字节跳动|抖音|火山|飞书).{0,8}(职级|职等|薪资|薪酬|业绩|奖金|绩效|HC|编制)", t):
+        return True
+    return False
+
+SENSITIVE_REPLY = "这个涉及公司内部信息，我不方便回答哈，咱们聊点别的~"
 
 def generate_reply(speaker: str, text: str) -> str | None:
     """调用 DeepSeek API 生成回复，失败返回 None"""
+    # 🚨 敏感信息前置拦截：不经过 LLM，直接拒绝
+    if is_sensitive(text):
+        print(f"[chat_reply] 🔒 敏感信息拦截: \"{text[:60]}\"", flush=True)
+        return SENSITIVE_REPLY
+
     if not DEEPSEEK_KEY:
         return None
 
@@ -103,7 +137,7 @@ def send_meeting_msg(text: str) -> bool:
                 "--meeting-id", MEETING_ID,
                 "--msg-type", "text",
                 "--text", text,
-                "--as", "user",
+                "--as", "bot",
             ],
             capture_output=True, text=True, timeout=15,
         )

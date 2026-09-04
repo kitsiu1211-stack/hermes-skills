@@ -31,7 +31,7 @@ from protocols_ import (
 )
 
 # ── 配置 ──
-API_KEY = "c3c35e49-452f-4c7a-a434-355d97dbb179"
+API_KEY = "<your-doubao-tts-key>"
 WS_URL = "wss://openspeech.bytedance.com/api/v3/tts/bidirection"
 
 # 默认音色

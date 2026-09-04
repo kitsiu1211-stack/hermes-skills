@@ -14,7 +14,17 @@ Cron job at 21:00 daily, or invoked on-demand.
 ## Workflow
 
 ### 1. Find today's sessions
-Use `session_search()` (no args = browse mode) to get the most recent sessions. Filter to sessions whose `when` field is today's date. Relevant sessions are those with source `feishu` involving the user.
+🚨 **主路径：state.db 直查（2026-08-28 修复，根治连续漏报）**。browse 模式只返回最近 10 个会话，遇到当天有大会话（会议旁听/长文分析 100+ 消息）或 cron 会话挤占时会把当天 feishu 会话挤出列表 → 误判"无实质对话"→ 静默漏报（08-24/25/26 连续 3 天翻车，当天分别有 124/80/368 消息的实质会话）。
+
+```bash
+sqlite3 ~/.hermes/state.db "SELECT id, source, title, datetime(started_at,'unixepoch','localtime') started, message_count FROM sessions WHERE started_at >= strftime('%s','<今天日期> 00:00:00','utc') AND source != 'cron' AND source != 'subagent' ORDER BY started_at;"
+```
+
+- 用 `message_count` 判断体量，对 message_count > 200 的大会话用 sqlite 抽取而非 scroll（防上下文爆炸）：
+```bash
+sqlite3 ~/.hermes/state.db "SELECT id, role, substr(replace(content, char(10),' ⏎ '),1,400) FROM messages WHERE session_id='<session_id>' AND ((role='user') OR (role='assistant' AND content IS NOT NULL AND length(trim(content))>0)) ORDER BY id;"
+```
+- 回退路径：`session_search()` browse 模式兜底，但 **SQL 查出有会话而 browse 显示为空时，以 SQL 为准**，禁止直接判"安静的一天"。
 
 ### 2. Extract content from each session
 For each relevant session found:
@@ -33,20 +43,28 @@ From the conversation content, extract:
 Format as a Feishu interactive card (see template below). Keep it concise — 3-5 bullet points per section max.
 
 ### 5. Send to user
-Use `feishu-cli exec im.v1.message.create`:
+Use `lark-cli im +messages-send` with bot identity. User identity (`--as user`) requires `im:message.send_as_user` scope which may not be available, especially in cron context.
+
+🚨 **Cron 模式防重复铁律（2026-08-19 修复）**：
+1. **先评分、后发送**：卡片必须等 Evaluator 全部维度 ≥7 通过后，才允许发送。禁止先发卡片再跑评分（会导致初版+修订版两张卡片都发出去）。
+2. **发送后最终响应必须输出 `[SILENT]`**：cron 会自动投递 agent 的最终响应。若你已经用 lark-cli 发出卡片，最终响应必须只写 `[SILENT]`，否则用户会同时收到卡片 + cron 自动投递的文本，造成重复。
+3. **二选一**：要么发卡片 + `[SILENT]`，要么不发卡片、直接把摘要文本作为最终响应让 cron 投递。禁止两者都做。
 
 ```bash
-feishu-cli exec im.v1.message.create --params '{
-  "params": {"receive_id_type": "open_id"},
-  "data": {
-    "receive_id": "ou_dc055b0b5b0b5db2b1af5e79c0536db6",
-    "msg_type": "interactive",
-    "content": "<card_json_string>"
-  }
-}'
+# Step 1: Build card JSON to a file (avoids shell backtick-escaping bugs)
+python3 /tmp/build_card.py > /tmp/card.json
+
+# Step 2: Send via lark-cli
+lark-cli im +messages-send \
+  --as bot \
+  --user-id ou_dc055b0b5b0b5db2b1af5e79c0536db6 \
+  --msg-type interactive \
+  --content "$(cat /tmp/card.json)"
 ```
 
-Use `json.dumps(card, ensure_ascii=False)` to serialize the card JSON, then embed it in the `content` field.
+**Important**: Write the card-builder Python script to a file first via `write_file()`, then run it via `terminal()`. Do NOT embed Python inline via `python3 -c "..."` when the code contains backtick characters — bash interprets backticks as command substitution, silently corrupting markdown code spans. Use unicode escapes (`\u0060`) if inline Python is unavoidable.
+
+The binary on this system is `lark-cli` (not `feishu-cli`). The `+messages-send` shortcut handles the call correctly.
 
 ## Card Template
 
@@ -90,10 +108,13 @@ If no substantive conversations happened today, send a brief note:
 
 ## Pitfalls
 - session_search browse mode returns sessions sorted by recency; filter by `when` date before processing
-- The card JSON must be properly escaped via `json.dumps(card, ensure_ascii=False)` before embedding in `--params`
+- The card JSON must be properly serialized via `json.dumps(card, ensure_ascii=False)` — then passed as the `--content` argument to `lark-cli`
 - Don't include every tiny interaction — only substantive discussions matter
 - If session content is very long, sample key excerpts rather than trying to read everything
-- Use `feishu-cli exec im.v1.message.create` (NOT MCP tools) for sending cards
+- **Cron mode blocks `execute_code`**: In cron jobs, `execute_code` is blocked. Write Python scripts to files with `write_file()` and run them via `terminal()` instead
+- **Shell backtick escaping**: Never embed Python inline via `python3 -c "..."` when the code contains backtick characters (common in markdown code spans like `skill-name`). Bash interprets backticks as command substitution, breaking the script. Use `write_file()` to a temp script, or escape backticks as `\u0060`
+- Use `lark-cli im +messages-send --as bot` (NOT `feishu-cli exec` or `--as user`) for sending cards. Bot identity works without additional scopes
+- `lark-cli` (not `feishu-cli`) is the binary on this system
 
 ## 质检：Generator → Evaluator（强制）
 

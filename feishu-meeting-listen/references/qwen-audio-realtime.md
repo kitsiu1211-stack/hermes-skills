@@ -2,7 +2,18 @@
 
 > 2026-07-15 千问发布实时语音模型。API 验证结果：**模型尚未上线**，改用 DashScope 实时 ASR 作为过渡方案。
 
-## 当前状态（2026-07-15）
+## 当前状态（2026-08-15 复测）
+
+- ✅ **模型已登记到百炼 REST 目录**（238 个模型），包含：
+  - `qwen-audio-3.0-realtime-flash` / `qwen-audio-3.0-realtime-plus`（就是之前等的那个）
+  - `qwen3.5-omni-flash-realtime` / `qwen3.5-omni-plus-realtime`（最新 Omni 实时版，语音+图像+文本）
+  - `qwen3-s2s-flash-realtime`（纯语音→语音）
+- ❌ **WebSocket 实时服务仍未打通**：三个端点实测都返回 "Model not found"
+  - `/api-ws/v1/realtime`（OpenAI Realtime 协议）：session 能建，但任何 model 名都被映射到不存在的 `qwen-omni-turbo-realtime-2025-03-26`
+  - `/api-ws/v1/inference`（run-task 协议）：`task=chat function=voice-chat` 报 "Model not found (qwen3-s2s-flash-realtime)"
+- 📌 结论：模型名已发布登记，但实时语音的 WebSocket serving 未开通，或需未发现的专用端点/协议。**待复测**。
+
+## 当前状态（2026-07-15，首次探测）
 
 - ❌ **Qwen-Audio-3.0-Realtime 模型未部署**：所有模型名（`qwen-audio-3.0-realtime-flash`, `qwen-omni-turbo`, `qwen3-audio-realtime` 等）在 `wss://dashscope.aliyuncs.com/api-ws/v1/realtime` 均返回 "Model not found"
 - ❌ API 文档 404：`https://help.aliyun.com/zh/model-studio/qwen-audio-realtime-api` 不存在

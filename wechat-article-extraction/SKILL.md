@@ -15,6 +15,8 @@ metadata:
 
 用户发 mp.weixin.qq.com 链接（文章分析、摘要、引用素材），需要先提取正文全文时。
 
+用户问「过去几个月发了多少篇公众号文章 / 哪个公众号最多 / 文章分类」等回顾型统计 → 见 `references/history-analysis.md`（state.db 捞链接 + 批量抓标题/公众号 + 关键词分类 + 飞书卡片）。
+
 # 微信公众号文章正文提取
 
 用户发 mp.weixin.qq.com 链接时，先用本 skill 提取正文，再交给下游（如 文章分析）处理。
@@ -69,3 +71,4 @@ body = m.group(1).replace('\\x0a', '\n').replace('\\"', '"').replace("\\'", "'")
 - 页面 HTML 里第一个 `js_content` 出现位置可能是 JS 引用而非正文 div，正则要锚定 `id="js_content"` 再往后找
 - `content_noencode` 的值是 JS 字符串转义，`\x0a`、`\"`、`\'` 都要反转义，否则正文粘成一行
 - 提取完保存 `/tmp/wx_article.txt` 供下游 skill 读取，不要把 3MB HTML 带进上下文
+- 🚨 **`author` 字段是转载公众号名，不是原文出处**（2026-08-25 实测）：extract.py 从页面 meta 读 author，转载号（如「关注前沿科技」转载量子位文章）会显示转载号名。下游引用来源时需从正文/文末「来源」/作者署名判断原公众号（如量子位 QbitAI），避免写错来源——用户偏好来源必须查证准确。

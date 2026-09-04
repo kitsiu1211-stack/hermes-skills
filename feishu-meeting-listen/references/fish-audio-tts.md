@@ -6,7 +6,7 @@
 ## API
 - 端点: `POST https://api.fish.audio/v1/tts`
 - 鉴权: `Authorization: Bearer <API_KEY>`
-- Key: `31ce9749f84b439cb2e1480dc54ba43d` (来自 `config/.env` `FISH_AUDIO_KEY`)
+- Key: `<your-fish-audio-key>` (来自 `config/.env` `FISH_AUDIO_KEY`)
 - 协议: HTTP JSON in → MP3 binary out（同步，非流式）
 
 ## 实际调用

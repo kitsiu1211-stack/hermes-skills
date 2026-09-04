@@ -112,6 +112,38 @@ python3 fetch_followups.py [--days 14]   # 读 /tmp/radar_result.json → 输出
 
 动作文件格式：`/tmp/radar_actions.json` = `{客户名: "动作文本"}`。send_radar_card.py 优先用 Agent 动作，缺省才用模板兜底（兜底动作会标注"建议改写"）。
 
+## V3 半年基线扫描（2026-08-27 用户定调）
+
+V2 只扫近两周 → 只有「切片」没有「全貌」：历史购买记录、购买原因、客户 AI 定位全缺失，动作仍会跑偏。
+用户规则：**第一次用 c360cli 扫描客户时，必须拉近 180 天全量跟进做基线**，建立客户 AI 认知后再谈商机。每周 cron 每次跑基线（窗口内自然包含增量）。
+
+### 基线能回答的问题
+- 客户买过什么（AI 包/版本/席位变化）、为什么买（购买原因）
+- 客户 AI 定位（自研/全员工具/仅 IM）、用谁家的模型（Gemini/Claude Code/豆包）
+- 哪些客户「不该推进」→ 直接排除出商机清单（此乃基线最大价值）
+
+### 实测案例：机智连接（2026-08-27）
+- 近两周无跟进 → V2 判「无跟进」，升级信号仍挂着
+- 半年基线一条记录直接定性（2026-07-15）：**账号将降至 100-200 个、只做中国区域 IM 使用、版本降为基础版；全员配 Gemini + Claude Code，招聘主要在海外**
+- 结论：业务出海、飞书仅作 IM 工具 → **不是商机，从雷达排除**，卡片标注原因。用户原话「以此内推」= 每个客户都过一遍基线再定推不推
+
+### 脚本用法（基线建档一次，之后每周只跑增量）
+```bash
+cd ~/.hermes/skills/feishu/ai-win-opportunity-radar/scripts
+python3 fetch_followups.py --baseline        # 首次建档：180天全量 → ~/.hermes/radar_baseline.json（持久化）
+python3 fetch_followups.py                   # 每周增量：近14天 → /tmp/radar_followups.json；自动复用基线+补新客户
+```
+- 基线档案持久化在 `~/.hermes/radar_baseline.json`（不在 /tmp，跨周不丢）
+- 增量模式自动检查档案：已有客户只拉近 14 天；**新客户进雷达自动补拉 180 天基线并入档**
+- 建档后每周不再重跑基线——用户定调：每周一次，只看新的一周数据
+
+### 基线判定规则（Agent 逐户过一遍，写 actions 前必做）
+1. **排除信号命中**（出海/海外/仅IM/全员用竞品AI/降版本）→ 从商机清单移除，卡片标注「排除：原因」
+2. **档位与基线矛盾**（实测雷鸟：radar 判入门档但基线显示 6 月已购 9.9 万 AI 企业版）→ 动作按基线事实写（已购客户谈增购/续费），卡片标注需人工核实档位
+3. **购买历史**（已购/待购/明确说不续约）→ 动作承接历史对话（如疆海 4 月底曾「明确不再续约」→ 先恢复信任再谈增量），禁止模板话术
+4. **AI 定位与用量矛盾**（实测零壹：用量 mom+138.5% 但 sponsor 明说「暂无落地 AI 场景」）→ 先摸清是谁在消耗，不直接推升级
+5. 基线决定「为什么聊」（客户画像），增量决定「这周聊什么」（最新状态）
+
 ## Generator / Evaluator 双角色流程
 
 ```
@@ -148,22 +180,24 @@ python3 fetch_followups.py [--days 14]   # 读 /tmp/radar_result.json → 输出
 
 **脱敏选项**：内部用保留客户名；对外分享用「某+行业+企业」。
 
-## 定时任务（cron）
+## 定时任务（cron）——每双周周一早上 9:00 自动跑（job: 755f8ece681d）
 
-每周一早上 9:00 自动跑（job: 755f8ece681d）：
-- cron schedule: `0 9 * * 1`
-- 加载本 skill → 执行全流程（radar_full.py → fetch_followups.py → Agent 写 actions → send_radar_card.py）→ 输出卡片到 Home
-- 手动触发：用户说「跑一下商机雷达」→ 手动执行
+- cron schedule: `0 9 * * 1`（每周一触发，prompt 内判断 ISO 周号，**偶数周执行、奇数周静默跳过**）
+- 发送节奏（2026-08-27 用户定调）：14 天增量窗口 → 双周发一次。实测：8/31=周36发 → 9/7=周37跳过 → 9/14=周38发
+- 加载本 skill → 执行全流程（radar_full.py → fetch_followups.py 增量 → Agent 写 actions → send_radar_card.py）→ 输出卡片到 Home
+- 🚨 **发送前强制步骤**：必须先跑 c360cli 跟进检索（近14天增量），结合基线档案+跟进情况给策略——没跑跟进检索不允许写策略、不允许发卡片（已写死进 cron prompt）
+- 手动触发：用户说「跑一下商机雷达」→ 手动执行，同样先跑跟进检索（不受双周限制）
 
 全流程命令（三脚本 + 一步 Agent 写作）：
 
 ```bash
 cd ~/.hermes/skills/feishu/ai-win-opportunity-radar/scripts
 python3 radar_full.py          # 1. 信号扫描 → /tmp/radar_result.json
-python3 fetch_followups.py     # 2. 近14天AI跟进扫描 → /tmp/radar_followups.json
-# 3. Agent 读两个 JSON，按「动作增强规则」写 /tmp/radar_actions.json
-python3 send_radar_card.py     # 4. 组装V2卡片发 Home
+python3 fetch_followups.py     # 2. 每周增量扫描 → /tmp/radar_followups.json（自动复用基线档案+补新客户，不重跑180天）
+# 3. Agent 读雷达结果 + 基线档案(~/.hermes/radar_baseline.json) + 增量摘要，按「基线判定规则」先排除/纠偏，再按「动作增强规则」写 /tmp/radar_actions.json
+python3 send_radar_card.py     # 4. 组装V3卡片发 Home
 ```
+首次建档（一次性）：`python3 fetch_followups.py --baseline` → 生成 ~/.hermes/radar_baseline.json
 
 ## 注意事项
 

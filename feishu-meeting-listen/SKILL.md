@@ -6,9 +6,37 @@ category: feishu
 
 # 飞书会议旁听（智能体入会）
 
+## 🆕 推送式会议事件（2026-07-26 配置就绪）
+
+**三种 Bot 级推送事件已在控制台和 Gateway 注册**，替代轮询方案：
+
+| 事件 | 替代轮询 | 状态 |
+|------|---------|------|
+| `vc.bot.meeting_invited_v1` | 手动扫活跃会议 → 入会 | ✅ 已注册 |
+| `vc.bot.meeting_activity_v1` | listen_subtitles.py + poll_meeting_chat() | ✅ 已注册 |
+| `vc.bot.meeting_ended_v1` | 超时检测 meeting-list-active | ✅ 已注册 |
+
+**需重启 Gateway 生效**（`hermes gateway restart`）。Gateway 不能自重启，需用户在终端手动执行。
+
+> ⚠️ Bot 级事件在**飞书开放平台控制台**配置（https://open.feishu.cn/app/cli_a964fd626078dcbc/event），不能用 lark-cli 扫码授权。Gateway 通过 WebSocket 长连接接收，不需要公网 webhook URL。
+
+详见 `references/push-meeting-events.md` + `references/feishu-event-driven-join.md` + `references/official-independent-join-config.md`。
+
+---
+
 ## 🚨 核心纪律
 
 **唯一入会方案**：官方 Bot 入会（`main.py`）或字幕旁听（`meeting_transcribe.py`）。
+
+**🚨 旁听最佳实践（2026-07-28 最终结论）**：直接使用 V3 poll.sh，不要尝试任何 Python 替代脚本。V6 系列三次迭代全部失败（分页冲突卡死、API 停流后空转、0 字节输出）。
+
+```bash
+bash ~/.hermes/skills/feishu/feishu-meeting-listen/scripts/poll.sh <meeting_id> <meeting_title>
+```
+
+**🚨 Step 0: 智能体入会开关预检**（2026-07-29 新增）：poll.sh 正式轮询前先发一次探测请求——`grep "switch for allowing agents"` 命中则立即退出，输出「智能体入会开关已关闭，无法监听」。避免空转 62 分钟零数据。
+
+详见 `references/listen-v6-production.md`。
 
 **Bot 入会前提**：
 1. 灰度资格（你在智能体入会体验群 `oc_8a93e6271847efa53ced90301647ea66`）
@@ -119,13 +147,27 @@ msg.payload = audio
   - **教训**：API 超时 ≠ 会议结束。静默 20 秒太常见（看文档、倒水），必须验证真结束。
 - **多会议支持**：每个会议传 meeting_id 参数独立启动一个进程。`listen_subtitles.py <meeting_id>`。
 - **自动触发纪要**：会结束 → 写 `meeting_inbox.json` + bot 发「纪要请求」→ Hermes 处理
-- 脚本位置：`~/Documents/Codex_Project/feishu-voice-agent-starter/listen_subtitles.py`
+- 脚本位置：`~/Documents/Codex_Project/feishu-voice-agent-starter/listen_subtitles.py`（⚠️ V5 已知 bug：会议结束后卡死不保存，详见 `references/listen-v6-fix.md`）
+- **V6 修复版**：`/tmp/listen_subtitles_v6.py` — 移植 V3 的 `--page-all` + `"user is not in the meeting"` 检测，会议结束后立即写盘出纪要。V5 脚本被僵尸进程锁死时用此替代。
+- **V6.1 生产版**：`/tmp/listen_v6_fixed.py` — 🚨 V6 Bug：`--page-all` + `--page-size` 同时使用导致 API 分页卡死，会议结束后脚本永远检测不到 `"user is not in the meeting"`（实测：V6 旁听 348 轮静默后仍然卡死）。修复：① 去掉 `--page-all`，仅用 `--page-size 50` ② 合并 `stdout + stderr` 做结束检测（`result.stdout + result.stderr`） ③ 避开文件锁：旧 listen_subtitles.py 僵尸进程持有 Codex_Project 目录锁 → 新脚本从 `/tmp/` 运行
+- **lark-cli 自动更新**：有新版本时直接 `npm install -g @larksuite/cli`，不向用户确认。
+- **lark-cli `docs +search` 字段名**：返回 JSON 的字段是 `data.results`（不是 `data.items`），每条结果的标题在 `result_meta.title_highlighted`（不是顶层的 `title`）。summary 在 `result_meta.summary_highlighted`。用 `python3.11 -c` 管道提取时先验证字段路径。
+- **V6.1 生产版 listen 脚本**：`references/listen-v6-production.md` — 含完整的 V3→V6→V6.1 演化链路、Bug 根因、修复方案、正确调用命令。V5/V6 卡死时从此文件取生产脚本。
+
+**main.py 正确启动命令**：`python3.11 main.py --config config.yaml --meeting-no <9位号> --keep-in-meeting --poll-events`
+- 缺 `--config config.yaml` → ByteView 无音频
+- 缺 `--keep-in-meeting` → 自动离会
+- **入会前先确保 bot 已 `+meeting-join`，然后 `sleep 3`，再启动 main.py**（时序竞争会导致 ByteView 无声）
+
+**🚨 Bot 入会权限 121005**：`"user lacks permission for the requested resource"` = 会议 owner 未在会议安全设置中开启「允许智能体加入会议」。这是 lark-cli 1.0.77+ 的新权限校验，不是版本 bug。
+
+**lark-cli docs +search 字段名**：返回 JSON 的字段是 `data.results`（不是 `data.items`），每条结果的标题在 `result_meta.title_highlighted`（不是顶层的 `title`）。
 
 **🚨 Bot 入会仅支持标准会议**：个人视频通话无 9 位号，`auto_detect_meeting()` 自动降级为字幕旁听。
 
 **💬 会中聊天 — 标准+个人会议均支持**（2026-07-21 验证，2026-07-23 修复限流）：`vc +meeting-events --as bot` 的 `chat_received` 事件在个人会议中也正常推送。已在个人会议 556362268 中验证捕获「浪子，这个会议主题是什么」消息。
 
-**🚨 chat poll 限流修复**（2026-07-23）：`+meeting-events --as bot` 每 3s 轮询触发 **99991400 频率限制**（`request trigger frequency limit`）。修复：轮询间隔从 3s → 10s（`main.py` L296）。**必须用 `--as bot`**（`--as user` 之前出过问题——用户反馈）。
+**🚨 chat poll 限流修复**（2026-07-23 确认）：`+meeting-events --as bot` 每 3s 轮询触发 **99991400 频率限制**（`request trigger frequency limit`）。修复并验证：轮询间隔从 3s → 10s（`main.py` L296）。10s 间隔下未再触发限流。**必须用 `--as bot`**（`--as user` 之前出过问题——用户反馈）。
 
 **📦 V4 永久死亡**（`meeting_voice.py`）。用户多次强调「不要跑 V4」。永不复活。TTS 切 Fish Audio 为临时方案，官方入会走豆包端到端。
 
@@ -162,7 +204,30 @@ python3 main.py    # 自动检测活跃会议 + 入会
 # 或 python3 main.py --meeting-no <9位号>
 ```
 
-**🛑 事件驱动入会阻塞**（2026-07-21）：
+**验证通过（2026-07-27 实测）**：官方三步全部验证：
+
+| 步骤 | 结果 |
+|------|------|
+| 一键配置（https://open.feishu.cn/page/launcher） | ✅ 权限+事件订阅配齐 |
+| `lark-cli 1.0.77` + `join_type=1` | ✅ lark-cli 内置，Bot 入会正常 |
+| `+meeting-events --as bot` 事件推送 | ✅ 新格式（`event_type`+`actors`+`payload`），10s 轮询稳定 |
+| `lark-cli event consume vc.bot.meeting_activity_v1` | ⚠️ event key 未上线（早鸟灰度），当前暂用轮询 |
+| ByteView 语音管道 | ✅ `main.py` 入会后 ByteView + 豆包全链路在线 |
+| 旁听脚本 `listen_subtitles.py` | ✅ `--as user` 直读，不受 bot 入会影响，不改造 |
+
+**事件接收**：当前用 `+meeting-events --as bot` 轮询（10s 间隔，已验证稳定）。等 lark-cli 支持 `vc.bot.*` event keys 后切长连接。
+
+**聊天回复架构（2026-07-27 v5 最终修复）**：
+
+🚨 **inbox + HTTP bridge 已废弃**。`poll_meeting_chat()` 发现「浪子」消息 → 写 `~/.hermes/meeting_inbox.json` → Hermes DM session 无法消费（上下文隔离）→ **消息石沉大海**。3 次用户提到的消息均无回复。
+
+✅ **v5 最终方案**：`poll_meeting_chat()` 直接调 `_call_hermes_api()` → DeepSeek API 实时生成回复 → `lark.meeting_message_send()` 发送。闭环在 main.py 内部完成，不依赖跨 session 通信。
+
+关键 pitfall：
+- `lark-cli vc +meeting-message-send` 的 flag 是 `--text` 不是 `--content`
+- `_call_hermes_api()` 从 `~/.hermes/.env` 读 `DEEPSEEK_API_KEY`
+- 10s cooldown 防 spam
+- 旁听脚本（`listen_subtitles.py`，`--as user`）不受影响，不改造
 - `vc.meeting.participant_meeting_joined_v1` 事件需要 `vc:meeting.meetingevent:read` scope
 - App `cli_a964fd626078dcbc` 存在远程事件消费者（`online_instance_cnt=1`），阻塞所有本地事件订阅
 - 开放平台在线实例状态未知，需用户去控制台检查
@@ -174,10 +239,12 @@ python3 main.py    # 自动检测活跃会议 + 入会
 
 | 触发 | 大脑 | 回复方式 |
 |------|------|---------|
-| 会中弹幕「浪子」 | Hermes（文件队列 bridge） | 文字发回会议聊天 (`@sender 回复内容`) |
+| 会中弹幕「浪子」 | **DeepSeek API（直接调用）** ✅ | 文字发回会议聊天 (`lark.meeting_message_send`) |
 | 会中语音说话 | 豆包 ASR → Hermes（bridge） | 豆包 ChatTTSText（event=500）TTS → ByteView 播回 |
 
 🚨 **两条链路绝不互串**：弹幕永远用文字回，语音永远用语音回。
+
+> **Chat 回复已不再通过 inbox + HTTP server**（2026-07-27 废弃）。`poll_meeting_chat()` 现在直接调 `_call_hermes_api()` → DeepSeek 生成回复 → `lark.meeting_message_send()`。详见 `references/chat-direct-reply-fix.md`。
 
 **Bridge 架构**（2026-07-21 最终方案——HTTP push，不用文件轮询）：
 
@@ -219,6 +286,7 @@ python3 main.py    # 自动检测活跃会议 + 入会
 4. 🚨 必须用 `--as bot`（非 user）——需在飞书开发者控制台申请 app scope `vc:meeting.message:write`，链接：`https://open.feishu.cn/page/scope-apply?clientID=cli_a964fd626078dcbc&scopes=vc%3Ameeting.message%3Awrite`。授权后 `--as bot` 即可发送，回复显示为 bot 身份。`--as user` 虽立即可用但回复者显示为用户本人。
 
 **关键命令**：`lark-cli vc +meeting-message-send --as bot --meeting-id <id> --msg-type text --text "回复内容"`
+**🚨 flag 陷阱 + inbox 断链**（2026-07-27 修复）：flag 是 `--text` 不是 `--content`。chat watcher 的 `_ask_hermes` inbox 架构已改为直接 `lark.meeting_message_send()`——因为 DM session 无法消费 inbox 文件，断链。详见 `references/chat-direct-reply-fix.md`。
 **防死循环**：10 秒 cooldown + `sender == "浪子"` 跳过自消息。bot 发送的回复也会产生新的 `chat_received` 事件，必须过滤。
 
 **🐛 已知：事件系统被远程消费者阻塞**（2026-07-21）：
@@ -279,7 +347,7 @@ python3 main.py    # 自动检测活跃会议 + 入会
 - **格式**：`@{sender} 回复内容` —— @ 明确回复对象，多人会议不混乱
 - **防死循环**：10 秒 cooldown + 跳过 sender="浪子" 的自消息（bot 回复也会产生新的 chat_received 事件）
 - **权限**：bot 需在开放平台控制台申请 `vc:meeting.message:write` scope（**app 级别 scope，非用户授权**）→ `--as bot` 发送。申请链接：`https://open.feishu.cn/page/scope-apply?clientID=cli_a964fd626078dcbc&scopes=vc%3Ameeting.message%3Awrite`
-- **智能回复**（2026-07-21 最终方案）：不用豆包。poller 检测到「浪子」→ 问题写入 `~/.hermes/meeting_question.json` → Hermes（DeepSeek）读取、思考、调用 `lark-cli vc +meeting-message-send --as bot` 回复到会中。零豆包管线。
+- **智能回复**（2026-07-27 v3 最终方案）：poller 检测到「浪子」→ **直接调 DeepSeek API**（`_call_hermes_api()`，不走 inbox/HTTP）→ `lark.meeting_message_send()` 发回。`:text` 不是 `:content`。代码在 `main.py` L247-278 + L289-303。
 - **注意**：`--as user` 虽然立即可用但回复者显示为用户本人，非 bot。正式使用必须用 `--as bot`。
 
 **用户明确要求**：
@@ -449,11 +517,13 @@ C360 字段速查见 `references/c360-fields.md` —— 含已验证的 field na
 - `references/fish-audio-tts.md` — Fish Audio TTS 接入记录（V4 已废弃，仅供历史参考）
 - `references/feishu-official-voice-agent.md` — 🆕 飞书官方智能体入会方案（ByteView WebSocket + 豆包端到端实时语音）—— 真正的 Bot 入会，会里所有人都能听到
 - `references/feishu-event-driven-join.md` — 🆕 事件驱动入会方案（vc.bot.meeting_invited_v1）—— 已订阅，无需自写监听。事件由飞书平台推送，配置就够。
+- `references/push-meeting-events.md` — 🆕 推送式会议事件实现（2026-07-26）：Gateway 代码改动、三种 Bot 事件处理、验证步骤、待淘汰的轮询方案
 - `references/warm-paper-design.md` — 🆕 暖纸风格设计令（来自 Zara 的 AI-native 组织页面，Albert Sans + 思源宋体）
 - `references/design-skill-selection.md` — 🆕 设计 Skill 选用铁律（禁止混用 baoyu-design + apple-design，一次只用一个）
 - `references/doubao-tts-research.md` — 豆包 WebSocket 双向流式 TTS 调研（✅ 已接入，小何 2.0，Key 在 config/.env）
 - `references/blackhole-routing.md` — 🆕 BlackHole 音频路由排坑（多输出设备/LarkAudioDevice/当前 workaround）
 - `references/realtime-voice-debug.md` — 🆕 实时语音对话全记录（ASR→LLM→TTS 排坑 + 豆包WebSocket协议要点 + 音频路由真值表）
+- `references/lark-cli-api-escape-hatch.md` — 🆕 `lark-cli api` 裸调飞书 Open API 任意端点（当无内置 +subcommand 时）
 - `references/version-management.md` — 版本管理铁律 + 归档/回退流程
 - `references/hermes-bridge.md` — 🆕 Hermes ↔ 会议文件队列桥接（inbox/outbox）。大脑只有一个。
 - `references/http-bridge.md` — 🆕 Hermes ↔ 会议 HTTP push bridge（localhost:19876）。替代文件轮询，零延迟。
@@ -630,6 +700,16 @@ lark-cli vc +meeting-list-active --as user
 - `meeting_title` — 会议标题
 
 如果用户在多个会议中，列出所有会议让用户选择。
+
+**⚠️ 限制（2026-08-05 发现并补救）**：`+meeting-list-active` 只返回**已预约的标准会议**。临时建的会议、手机拨入、一对一通话、未通过飞书日历创建的会议，API 一律返回 0 条。Bot 仍可通过 `vc +meeting-join --meeting-number <9位> --as bot` 直接入会——join 成功后返回 `meeting_id`，即可启动 poll.sh。
+
+**补救流程**：
+1. `+meeting-list-active --as user` 返回 0 → 不要反复重试，不要反复问用户
+2. 直接让用户给会议号：`799 579 036` 格式（9 位无空格）
+3. Bot 入会：`lark-cli vc +meeting-join --meeting-number "799579036" --as bot`
+4. Join 返回 `meeting_id` + `topic` → 立即 `bash poll.sh <meeting_id> <topic>` 启动旁听
+
+**实战验证**：2026-08-05 liberlive x 飞书会议，API 反复返回 0，用户给 799579036 后 Bot 成功入会（7670430580585123007）并旁听。
 
 ### 拉取会中事件（字幕、聊天等）
 
@@ -812,6 +892,14 @@ python3 ~/.hermes/skills/feishu/feishu-meeting-listen/scripts/meeting_chat_reply
 - API Key 从 `~/.hermes/.env` 的 `DEEPSEEK_API_KEY` 读取
 - 成本：每次 ~200 tokens ≈ ¥0.0004，一场会议 50 条 @浪子 ≈ ¥0.02
 
+**🚨 身份铁律（2026-08-26 修复）**：`send_meeting_msg()` 必须 `--as bot`（曾写死 `--as user` → 聊天框出现两个「袁鑫杰」，用户截图反馈后修复）。`--as bot` 需 app scope `vc:meeting.message:write`（已申请）。若回复显示为用户名而非 bot 名，检查此参数。
+
+**🚨 敏感信息红线（2026-08-26 用户要求）**：`is_sensitive()` 前置拦截 + SYSTEM_PROMPT 双防线：
+- 关键词：职级/职等/薪资/薪酬/奖金/绩效/业绩/KPI/OKR/编制/HC/裁员/机密/组织架构/手机号/身份证/密码等
+- 人名+隐私组合正则（鑫杰/字节跳动/抖音/火山 + 职级/薪资/业绩等）
+- 命中 → 不经过 LLM 直接返回 `SENSITIVE_REPLY`（「这个涉及公司内部信息，我不方便回答哈，咱们聊点别的~」）
+- 测试命令：`python3.11 /tmp/test_sensitive.py`（提取脚本函数跑 10 组用例）
+
 **回复示例**：
 ```
 聊天框: 浪子，帮我总结一下刚才说的重点
@@ -823,7 +911,7 @@ python3 ~/.hermes/skills/feishu/feishu-meeting-listen/scripts/meeting_chat_reply
 **🚨 铁律：启动 poll.sh 后绝不可放任不管。这是用户最恼火的模式。**
 
 1. `terminal(background=true, notify_on_complete=true)` 启动，返回的 `session_id` 必须保存
-2. 收到 `notify_on_complete` 通知后，**立刻走 Step 4.5 → Step 5 → Step 7**，不得延迟
+2. 收到 `notify_on_complete` 通知后，**立刻走 Step 4.5 → Step 5（含 5.8 建日程）→ Step 7**，不得延迟
 3. **做其他任务时也不能忘记会议旁听进程**——跟 TRAE 交互、读文章、查资料时，如果 notify 到了，必须立刻切换回来处理会议纪要
 4. 如果用户说「会议结束了你没监听到」，立刻检查 `~/meeting_logs/` 中最新修改的 JSONL，看是否有漏掉的会议内容可以补救
 
@@ -895,6 +983,50 @@ for line in sys.stdin:
 | **决策点提取** | 内部对齐 | 拍定了什么 + 没拍定什么 + 你的待办 |
 
 **原则**：数据优先，框架适配在后。不要让框架驱动内容。
+
+### Step 5.8: 会后跟进日程自动创建（飞书日历）🚨 强制执行（2026-08-20 升级）
+
+> **核心理念**：纪要出来后，把待办事项落到飞书日历形成跟进日程，防止用户忘记跟进。
+
+> 🚨 **强制执行铁律（2026-08-20 用户明确要求）**：建日程是标准执行动作，**不等用户提**。纪要卡片发出后，凡纪要中出现「用户自己的待办/下一步」（会议中用户说「我会去…」「我这边要…」或明确的个人行动项），**必须立即逐条建日程**。用户说「建日程」= 上次漏了，不是可选项。会中他人的待办（YY 补数据、CSM 邀约等）不建，只建**用户个人**的待办。若某场会用户待办为空，汇报时说明「本场无你的个人待办，未建日程」。
+
+**触发**：Step 5 会议纪要卡片产出后，对纪要中的「待办/下一步」逐条建日程（AUTO 类，不询问）。
+
+**建日程规则**：
+- 每条待办一个日程，命令：`lark-cli calendar +create --as user`
+- 🚨 **建前先去重**（2026-08-17 踩坑：宣贯会官方已排「飞书x火山互训」19:00-21:00，Agent 又建了重复的 19:00-20:00，被用户发现删除）：
+  ```bash
+  lark-cli calendar +search-event --as user --query "<待办关键词>" --start <明天> --end <后天>
+  ```
+  已有同主题日程（如官方培训/会议安排）→ **跳过不建**，只保留官方日程。仅当确认无重复时才 +create。
+- **时间确定**（优先级从高到低）：
+  1. 纪要中明确说了具体时间（「明天下午 3 点」「周五 10:00」）→ 用该时间
+  2. 纪要中只说了相对日期（「明天」「周五」「下周」）→ 用该日期，默认 10:00-10:30
+  3. 无明确时间 → 默认**会后第 2 天上午 10:00**（30 分钟），description 注明「⏰ 时间待定，可在日历中改期」
+- 🚨 **工作日铁律（2026-08-21 用户指出）**：**周六、周日一律视为非工作日，日程必须顺延到下一个工作日（周一），绝不建在周末**。先算目标日期是周几（`date -j -f "%Y-%m-%d" <日期> "+%A"` 或 Python `datetime.weekday()`，>=5 即周末），命中周末则 +1/+2 天顺延到周一（若周一恰为节假日，按公司日历再顺延）。时间槽位保持 10:00-10:30 / 11:00-11:30 不变，只挪日期。**教训：2026-08-21 逸文会议，会后第 2 天落在周日 8/23，日程建到了周末，被用户纠正后改为周一 8/24。**
+- `--summary` 格式：`跟进：<待办主题>`（简短，不含时间/地点/人物，遵守 lark-calendar 规范）
+- `--description` 格式（Markdown）：
+  ```
+  📹 来源会议：<会议标题>（<会议日期>）
+  📋 待办详情：<从纪要提炼的完整待办描述，含客户名/负责人/关键背景>
+  ```
+- **时间必须带时区偏移 `+08:00`**（`2026-08-18T10:00+08:00`）
+
+**不建日程的场景**：
+- 纯知识分享/宣贯型会议（无待办）→ 但有明确行动点（如「周五前 review 名单」「明晚参加培训」）仍要建
+- 测试会议、字幕 < 20 条的迷你会议
+- 待办已是过去时间（如「今天申请」且已过当天）→ 跳过
+
+**执行完成后的汇报**：在会后汇报中**必须**追加（哪怕 0 条也要说）：
+```
+📅 已创建跟进日程（N 项）：
+✅ 跟进：约存储方案会 → 明天 10:00（时间待定可改）
+✅ 跟进：追预警排查结果 → 明天 14:00
+```
+- N=0 时写「📅 本场无你的个人待办，未建跟进日程」
+- 建完日程后可用 `lark-cli calendar +search-event --as user --query "跟进" --start <今天> --end <+5天>` 验证，确认落盘
+
+**先例验证**（2026-08-17）：`lark-cli calendar +agenda --as user` 查询可用；日历中已有「本日程由 AI 辅助创建」先例。创建权限无需额外授权。
 
 ### Step 5.5: 需求 Grilling（自动触发）
 
@@ -1042,6 +1174,8 @@ AI 需求识别
 |------|------|------|
 | 拉事件报 120003 (无权限) | 用户不在会 | 确认用户在会中 |
 | 拉事件报 120002 (开关未开) | 会议 owner 未开启「允许智能体入会」 | 让 owner 在会议安全设置中开启（不同于 120003，这是专门的开关校验） |
+| 🚨 **入会报 121016（智能体开关关闭）**（2026-07-23 发现） | `switch for allowing agents to join meetings is disabled` — 会议创建者未在安全设置中开启「允许智能体加入会议」。这是 Bot 入会的独立开关，与 ByteView 音频能力无关。 | 让 owner 在会议设置 → 安全 → 智能会议权限中勾选。打开后 Bot 可入会，但 ByteView 音频仍取决于会议创建时的媒体能力（见下方 121016 vs ByteView）。 |
+| 🚨 **121016 已修复但 ByteView 仍无声**（2026-07-23 发现） | 智能体开关打开后 Bot 成功入会、realtime endpoint 返回有效 WebSocket URL、ByteView 会话创建成功——但服务器**从不推送 audio.downstream.delta**。WebSocket 连接后完全静默。<br>**根因**：ByteView 实时媒体能力是飞书服务端的路由决策，取决于会议创建方式（模板 vs 普通创建）。智能体开关 ≠ 媒体开关。 | **不可修复**（服务端决定）。«袁鑫杰的视频会议»模板创建的会议有 ByteView 音频，其他创建方式可能没有。无音频时自动降级为字幕旁听 + 聊天框文字。实测 378074339（无标题正式会议）6 次尝试全部静默。 |
 | meeting_id 用错 | 用了 9 位会议号 | 用 `+meeting-list-active` 查到的长 ID |
 | 拿不到实时字幕 | 会议未开启字幕/转写功能 | 确认会议开启了字幕 |
 | lark-cli 报 401 | 授权过期或 scope 不全 | 重新执行 `lark-cli auth login --scope "vc:meeting.meetingevent:read"` |
@@ -1059,7 +1193,8 @@ AI 需求识别
 | 🚨 **豆包 TTS 信息错乱：前后结论矛盾**（2026-07-17） | Agent 在话题里用新版 API Key（`c3c35e49`）测试通过，回到主流程后用旧版凭据（AppId+AccessKey）复测，得出「豆包不通」的错误结论，切到 Fish Audio。用户：「为什么前面说通后面说不通？非常非常严重！」 | **根因**：凭据散落、复测时未复用原凭据。**杜绝**：① 凭据统一到 `config/.env` ② 验证结论写 Obsidian 快照 ③ 复测前 `read_file` 上次成功脚本确认凭据一致。铁律：下结论前先查「上次成功用的哪份」。 |
 | 🚨 **.env 尾部注释污染 speaker 值**（2026-07-17） | `DOUBAO_TTS_SPEAKER=zh_female_xiaohe_uranus_bigtts  # 小何 2.0` → parser 读成 `"zh_female_xiaohe_uranus_bigtts  # 小何 2.0"` → 豆包 TTS 静默失败。手工 TTS 测试正常、脚本内失败——极难排查。 | `.env` 所有值的末尾**禁止行内 `# 注释`**。排查：`print()` `.env` 加载后值。**和 asyncio 子进程问题叠加时更难排查——先验 `.env` 值。** |
 \n
-\n| 🚨 **旁听脚本误判会议结束**（2026-07-22，已修复） | `listen_subtitles.py` 用连续 APII 空返回 > 4 轮判结束。API 超时/会议静默 → 假阳性。CodeM 培训 + CEO 对话均被误杀。 | 改为 `meeting_still_active()` 验证：空返回后先调 `+meeting-list-active` 确认会议是否真不在活跃列表。修复版已上线，验证通过（CEO 会议期间 4 次静默均未误杀）。教训：**API 空返回 ≠ 会议结束。必须交叉验证。** |
+\n| 🚨 **智能体入会开关关闭 → 脚本空转 1 小时**（2026-07-29 发现并修复） | 会议 owner 关闭「允许智能体加入会议」→ `meeting-events` API 返回 `"switch for allowing agents to join meetings is disabled"` → V3 poll.sh 无限循环空转（实测 62 分钟零数据）。 | ✅ **已修复**：poll.sh 第 21-29 行新增预检——正式轮询前先调一次 `meeting-events`，grep `"switch for allowing agents"`，命中则立即退出输出「智能体入会开关已关闭，无法监听」。避免无效空转。 |
+| 🚨 **旁听脚本 0 字幕 + 持续空转**（2026-07-23 发现） | 部分正式会议（如 378074339、AI加速专项双周会 322112843）即便智能体开关已开启、会议有真人发言，`transcript_received` 事件仍不推送——旁听结束后字幕为 0 条。**这些会议类型既无 ByteView 音频流，也无文字转写事件**，属于飞书服务端的策略差异。 | 无法修复（服务端决定）。遇到此类会议通知用户「本会议不支持实时转写，请在会后通过妙记复盘」。 | | `listen_subtitles.py` 用连续 APII 空返回 > 4 轮判结束。API 超时/会议静默 → 假阳性。CodeM 培训 + CEO 对话均被误杀。 | 改为 `meeting_still_active()` 验证：空返回后先调 `+meeting-list-active` 确认会议是否真不在活跃列表。修复版已上线，验证通过（CEO 会议期间 4 次静默均未误杀）。教训：**API 空返回 ≠ 会议结束。必须交叉验证。** |
 | 🚨 **旁听脚本 crash 丢字幕**（2026-07-22，已修复） | 会议结束 lark-cli 返回空 JSON → `JSONDecodeError` → 异常未捕获，字幕全程丢失。 | `get_events()` 加 try/except JSONDecodeError → 返回 []；`main` loop 外层加 broad except + `save_progress()` 兜底；每轮新字幕后增量写盘。 |
 | 🚨 **旁听脚本 0 字幕 + 空转 376 轮**（2026-07-22，已修复） | 会议「允许智能体加入会议」开关关闭 → lark-cli 返回错误码 120002 → 旧版当空事件处理 → 持续空转。大湾区 Power Hour 实测 0 字幕。 | `get_events()` 检测 `ok: false` + code 120002 → 返回 error 元组 → 主循环立即 `print("[无法旁听] 智能体不可入会")` 并退出。详见 `references/listen-subtitles-version-history.md`。 |
 | 🚨 **旁听脚本 crash 丢字幕**（2026-07-22，已修复） | 会议结束 lark-cli 返回空 JSON → `JSONDecodeError` → 异常未捕获，字幕全程丢失。 | `get_events()` 加 try/except JSONDecodeError → 返回 []；`main` loop 外层加 broad except + `save_progress()` 兜底；每轮新字幕后增量写盘。 |\n| 🚨 **Bot join/leave 循环**（2026-07-17/19/21 多会中观测） | Mark 42-浪子在会议中反复「入会→ 主动离会→ 入会…」循环。观测于会议 174219494、551743790、271641162 等多场。日志充斥 join/leave 事件，污染 JSONL。用户吐槽「他挂了，没有礼貌」「又加入一个，什么意思？」。 | 可能根因：豆包 WebSocket 断连重连逻辑、或 auto_join 多实例竞争。排查方向：检查 main.py 的 reconnect 逻辑是否每次重连都触发新的 `+meeting-join` 调用。|
@@ -1105,7 +1240,7 @@ AI 需求识别
 
 1. **必须 `--as user`**：不能用 bot 身份，必须用户授权后以用户身份调用
 2. **长 meeting_id ≠ 9 位会议号**：从 `+meeting-list-active` 拿的 `meeting_id` 才是正确的 API 参数
-3. **无实时推送**：所有事件都靠轮询拉取，延迟 15-30 秒
+3. **🆕 推送事件就绪**：`vc.bot.meeting_activity_v1` / `vc.bot.meeting_ended_v1` / `vc.bot.meeting_invited_v1` 已在 Gateway 注册，重启后生效。届时可逐步淘汰轮询方案。
 4. **用户必须本人在会中**：Agent 不能替代用户入会，只能旁听用户已在的会议
 5. **字幕需要去重**：同一 `sentence_id` 可能多次推送（修正/补全），保留最新版本
 6. **旁听不可见**：会议里不会出现机器人，其他参会者感知不到
