@@ -50,6 +50,11 @@ category: productivity
 
 绝不存：种族、宗教、性取向、健康状况、住址、电话号码、PII、心理评估、MBTI。不存占位符——"有健康问题"也不行。
 
+## 主动遗忘设计（敢忘）
+
+> 2026-09-08 用户把 Today.ai 文章的「敢忘」概念落到了 memory 机制设计上：敢忘 ≠ 删除无效信息，敢忘 = 主动设计遗忘。现有「满了才压缩」是被动遗忘；敢忘要求**写入时定保质期、小遗忘日常化、季度把记忆亮给用户审、北极星 = 记忆改变决策的次数**。
+> 四动作完整框架 + 用户的原话推理链 + 「敢忘手术」待办状态：`references/proactive-forgetting-design.md`
+
 ## 清理工作流
 
 1. 导出当前内容，逐条标注 `[stated]` / `[inferred]` / `[observed]`
@@ -57,3 +62,11 @@ category: productivity
 3. 过程/技巧 → 放进对应 skill（不是 memory）
 4. 合并重复
 5. 目标：6-10 条、<50% 容量
+
+### 🚨 批量 remove 陷阱：系统提示词里的 memory 快照会过期
+
+memory 条目在会话中会被别的任务改动（新增/改写，比如顺手写了 model.routing 或改了 Obsidian 条目），系统提示词注入的快照可能已旧。批量 remove 时 old_text 照抄旧快照 → 一个不匹配整批失败（batch 是 all-or-nothing，所有 add/remove 全部不生效）。
+
+- remove 的 old_text 用「短唯一子串」（如 `[stated]` 前缀 + 前几个字，或一条专属名词），别用会随内容漂移的整句。
+- 失败时错误信息会返回 `current_entries`（当前真实条目列表），直接拿它重建 operations 再提交，别对着旧快照瞎猜。
+- 压缩后不必追加「压缩时间戳」条目去浪费刚腾出的空间——使用率本身（<80%）就是防重复的闸。
