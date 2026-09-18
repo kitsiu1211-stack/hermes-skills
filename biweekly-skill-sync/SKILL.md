@@ -60,7 +60,44 @@ find ~/.hermes/skills -type f -mtime -14 -not -path '*/.git/*' -not -path '*/nod
 
 ## Phase 4: 上传
 
-### GitHub 批量推送
+### ⚠️ 环境事实（2026-09-18 实测，先读这段）
+
+| 事实 | 影响 |
+|------|------|
+| `/tmp/hermes-skills` **每次会话都被清空** | 不要假设本地已有镜像仓库，每次重新拉 |
+| `git clone` / `git push` 到 github.com **超时**（443 被墙） | 不要用 git，用 `gh api`（Git Data API） |
+| `gh` CLI 已认证 kitsiu1211-stack，`gh api` 正常 | 上传走 API |
+
+**两个镜像仓库**（skill 在仓库里是**扁平目录**，目录名 = skill 名，不带 category 前缀）：
+
+| 仓库 | 内容 |
+|------|------|
+| `kitsiu1211-stack/hermes-skills`（public） | 主镜像，绝大部分 skill |
+| `kitsiu1211-stack/hermes-skills-private`（private） | 仅已有的一小撮业务 skill；**只更新仓库里已存在的 skill，不要往里加新 skill** |
+
+```bash
+# 1) 拉镜像快照（无 git）
+mkdir -p /tmp/hs-x && cd /tmp/hs-x
+gh api repos/kitsiu1211-stack/hermes-skills/tarball/main > pub.tar.gz
+gh api repos/kitsiu1211-stack/hermes-skills-private/tarball/main > priv.tar.gz
+mkdir -p pub priv && tar xzf pub.tar.gz -C pub --strip-components=1 && tar xzf priv.tar.gz -C priv --strip-components=1
+```
+
+```bash
+# 2) 生成 manifest（每个 skill 一个 commit）后推送
+python3 scripts/gh_sync.py kitsiu1211-stack/hermes-skills /tmp/manifest_pub.json
+python3 scripts/gh_sync.py kitsiu1211-stack/hermes-skills-private /tmp/manifest_priv.json
+```
+
+`scripts/gh_sync.py` 用 Git Data API：blob → tree(base_tree) → commit → PATCH ref，逐文件只推**有差异的文件**（不是整个 skill 全传）。支持 `sanitize: true` 在镜像侧替换真实密钥。
+
+```bash
+# 3) 验证（必做）
+gh api 'repos/kitsiu1211-stack/hermes-skills/git/trees/main?recursive=1' --jq '.tree[].path' | grep '<新skill>/'
+gh api repos/kitsiu1211-stack/hermes-skills/contents/<secret-skill>/config/.env --jq '.sha'   # 密钥文件 sha 未变 = 没被覆盖
+```
+
+### GitHub 批量推送（旧法，仅当 git 可用时）
 
 **更新类先同步文件再提交**（新建类如果 ~/.hermes/skills 是唯一源可直接 add；为一致性统一走 rsync）：
 
@@ -102,6 +139,9 @@ git push origin main
    - `references/in-meeting-voice.md`、`references/fish-audio-tts.md`（文档内嵌 Key）
    rsync 命令：`rsync -a --exclude='.git' --exclude='config/.env' --exclude='scripts/meeting_speaker.py' --exclude='references/in-meeting-voice.md' --exclude='references/fish-audio-tts.md' <src>/ /tmp/hermes-skills/feishu-meeting-listen/`
    其他 skill 推送前若命中真实密钥，同样先脱敏镜像副本再提交（本地原版保留可运行）。
+3. **⚠️ c360-cli SKILL.md 含真实 Bearer token（2026-09-18 发现，已在两个镜像仓库脱敏）** — `SKILL.md` 的 calculator 示例里写着 44 位真实 token（两处）。处理方式：**不走 rsync，改用 `gh_sync.py` 的 `sanitize: true`**，把 `Bearer <44位>` 替换为 `Bearer <your-token-here>`，**本地原版不动**。
+   - 副作用：镜像与本地永久存在差异，此后每轮扫描都会把 c360-cli 判为「有改动」——这是预期行为，直接重推即可，不要去「修掉」这个差异。
+   - 本地文件里那把 token 仍是真的，属于待用户轮换的历史遗留。
 3. **终端工具中避免 `&&` 链式命令** — Hermes Gateway 可能将 `&&` 链误判为危险操作并拒绝执行。改用分步命令：
    - `git add <dirs/>`（可多目录一步）
    - `git commit -m "..."`（双引号）
@@ -110,10 +150,31 @@ git push origin main
 
 ### SkillHub
 参考 `skill-hub` Skill 的流程：
-1. 读取 `/tmp/skillhub/index.html`
-2. 在对应分类添加卡片对象
-3. 更新计数
-4. 发布：`cd /tmp/skillhub && lark-cli apps +html-publish --app-id app_179xr3ds4q0 --path ./index.html --as user`
+1. 读取 `/tmp/skillhub/index.html`（不存在就 `curl -sL 'https://bytedance.feishuapp.com/app/app_179xr3ds4q0' -o index.html` 拉线上版）
+2. 在对应分类添加卡片对象（字段见 `skill-hub` skill）
+3. 更新三处计数：`.hero-badge`、`.hero-sub`、分类 `.pill-count`
+4. **发布前必须跑语法校验（血泪教训，见下）**：
+   ```bash
+   # 抽出 <script> 块逐个 node --check
+   python3 - <<'EOF'
+   import re,subprocess
+   h=open('/tmp/skillhub/index.html',encoding='utf-8').read()
+   for n,b in enumerate(re.findall(r'<script(?![^>]*src=)[^>]*>(.*?)</script>',h,re.S)):
+       if len(b.strip())<20: continue
+       open('/tmp/b%d.js'%n,'w').write(b)
+       p=subprocess.run(['node','--check','/tmp/b%d.js'%n],capture_output=True)
+       print(n,'OK' if p.returncode==0 else 'FAIL\n'+p.stderr.decode()[:300])
+   EOF
+   ```
+5. 发布：`cd /tmp/skillhub && lark-cli apps +html-publish --app-id app_179xr3ds4q0 --path ./index.html --as user`
+6. **发布后回头 curl 一次线上页，再跑一遍第 4 步** + 数 `code:"..."` 的条数，确认卡片数 = 预期
+
+#### ⚠️ 陷阱：少一个逗号 = 整个页面空白（2026-09-18 实测）
+
+分类数组里**每个 skill 对象之间必须有逗号**，只有每类最后一条可以省略。少写一个逗号 → `<script>` 整块 SyntaxError → `renderAll()` 不执行 → **页面只剩 hero 和导航，一张卡片都不显示**（而且线上看上去「没报错」，很容易几周都没人发现）。
+
+- 2026-09-18 的线上版就有 2 处缺失（`wayfinder-requirements` 后、`skill-routing` 后），已修复。
+- 因此**「发布前 + 发布后」都要 `node --check`**，这是唯一能抓住这类静默失败的检查。
 
 ---
 
