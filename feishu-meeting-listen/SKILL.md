@@ -44,7 +44,8 @@ bash ~/.hermes/skills/feishu/feishu-meeting-listen/scripts/poll.sh <meeting_id> 
 3. 标准会议（9 位号）+ 至少 1 个真人在场说话（空会议豆包会断开，错误码 45000001）
 4. **戴耳机**——外放回声会让 Bot 被自己打断（barge-in 默认开启）
 5. `--check` 全绿（凭据就位）
-6. `config.yaml` 的 `opening_line` + `doubao_model` 已填充——两个字段通过 `_start_session_payload` 传给豆包（`opening_line` 在根级别，不是 `dialog` 子字段）；`say_text()` 已从 main.py 移除，不触发语音
+6. 🚨 **`opening_line` 必须留空**（2026-09-10 用户纠正：「你不能进去就开麦」）——填了开场白 = 豆包入会就在会议里念自我介绍，50 人会议社死。现在 `opening_line: ""`，且 `config.yaml` 新增 **入会静音门控**：`mute_by_default: true` + `wake_words: [浪子, 小浪]` + `wake_window_seconds: 90`。实现在 `main.py` `forward_doubao_to_byteview()`——豆包 TTS 字节流默认全部丢弃，只有会议 ASR 文本里出现 wake word 才开麦（窗口内有效）。`persona.md` 第一铁律同步写「默认全程静音、被点名才开口」（`_load_persona()` 读 `persona.md` 作 `system_role`，注意它是相对路径，main.py 必须在项目根目录启动）。验证脚本 `/tmp/test_mute_gate.py`（3 个场景全通过）。
+   - `doubao_model` 仍通过 `_start_session_payload` 传给豆包；`say_text()` 已从 main.py 移除
 
 **🎭 人设灵活性**（2026-07-21 修正）：
 - ❌ **旧 persona**：锁死「AI销售助手，只能提供客户洞察」——豆包端到端模型严格跟随 `system_role`，用户说「你不智能」就是因为人设太窄，LLM 只能回答客户相关，无法动态适配会议类型
