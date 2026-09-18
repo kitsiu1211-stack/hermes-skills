@@ -99,6 +99,8 @@ lark-cli schema im.v1.chat.list   # Inspect API params
 
 6. **Auth tokens auto-refresh.** Unlike MCP which had token expiry issues, `lark-cli` handles refresh tokens automatically. Run `lark-cli auth status` to verify.
 
+    ⚠️ **Cron context caveat**: auto-refresh may not trigger proactively in cron sessions without recent API activity. Before any cron job that depends on `lark-cli`, run `lark-cli auth status` to check token expiry. If the access token expires within 48 hours, flag it in the output. The refresh token typically outlasts the access token by 7 days — if the refresh token is still valid, a single API call (e.g. `lark-cli im +chat-list --page-size 1`) will trigger auto-refresh.
+
 7. **CLI-only architecture.** Do NOT fall back to MCP tools or direct HTTP API calls for Feishu. The `mcp_feishu_*` tools are permanently removed. CLI is the only path.
 
 8. **`+html-publish --path` must be relative.** The path flag rejects absolute paths (`/tmp/myapp`) with `unsafe --path`. Solution: `cd /tmp && lark-cli apps +html-publish --path ./myapp`.
@@ -108,3 +110,18 @@ lark-cli schema im.v1.chat.list   # Inspect API params
 10. **Apps domain auth: device flow two-step required.** `lark-cli auth login --domain apps` blocks for up to 10 minutes — use `--no-wait --json` to get the code + URL, show QR to user via `lark-cli auth qrcode`, then run `lark-cli auth login --device-code <code>` after user confirmation. Full recipe in `references/miaoda-html-publish.md`.
 
 11. **`docs +create --content @file` requires relative path.** The `@file` syntax rejects absolute paths. Solution: `cd` to the file's directory first, then `--content "@./filename.md"`. Full recipe in `references/doc-create-markdown.md`.
+
+12. **Clean up residual npm packages from old Feishu toolchains.** Migration to `@larksuite/cli` often leaves behind packages like `@m1heng-clawd/feishu`, `openclaw`, `openclaw-team-in-feishu`, `@overlink/openclaw-feishu`, `clawhub`. Run `npm list -g --depth=0` periodically and uninstall anything that isn't `@larksuite/cli` or an unrelated tool. These stale packages don't break functionality but clutter the environment and can confuse agent routing.
+
+13. **`lark-cli update` can time out.** The built-in `lark-cli update` command shells out to npm and may hang (observed 30s+ timeout). Fallback: `npm install -g @larksuite/cli@latest` in the background with `notify_on_complete=true`. Check version: `lark-cli auth status` output includes an `_notice.update` block with current/latest versions.
+
+14. **`auth login` does not accept `--as` flag.** The `--as user/bot` flag is for domain commands (`im`, `docs`, etc.), not for `auth login`. `auth login` authenticates the current machine's lark-cli installation globally; use `--domain all` for full scope re-auth. Use `lark-cli auth login --help` to verify flag support before attempting.
+
+15. **`vc +meeting-join` 的 flag 是 `--meeting-number`（9 位会议号），不是 `--meeting-id`。** 传 `--meeting-id` 直接报 `unknown flag`（CLI 会提示 `did you mean --meeting-number?`）。正确写法：
+    ```bash
+    lark-cli vc +meeting-join --meeting-number "816630006" --as bot
+    ```
+    返回 `data.join_user.id` + `data.meeting.id`（长 meeting_id，供 `+meeting-events` 用）+ `meeting_no` + `topic`。注意接口分工：`vc +meeting-list-active` 给的是**长 meeting_id**，而入会要的是 **9 位 meeting_no**。
+    只想要「Bot 在场但不说话」时：join 之后只跑字幕轮询，**不要**启动语音管线（main.py）——没有管线就没有 TTS，天然静音。
+
+16. **`im +messages-send --msg-type interactive` 的卡片 JSON 必须用 Python `json.dumps()` 构建，禁止 bash 变量拼接**（bash 里换行会写成字面量、卡片渲染出原始转义符）。多张卡片（会议纪要）用一段 Python 循环发送；`tag: markdown` 的 content **不认 `**粗体**`**（会原样显示星号），在脚本入口做一次 `**x**` → `<font weight=bold>x</font>` 的正则替换，正文就能照常写 Markdown。可复制模板见 `references/interactive-card-batch.md`。
