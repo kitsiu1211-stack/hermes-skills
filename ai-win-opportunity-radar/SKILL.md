@@ -176,7 +176,9 @@ python3 fetch_followups.py                   # 每周增量：近14天 → /tmp/
 - 顶部统计：强信号（本周必须动作）/ 中信号（本周安排接触）/ 到期节点（非升级信号）
 - 💡 跟进洞察行（有跟进数据时）：X 家有近两周 AI 对话，Y 家无任何跟进
 - 每个信号客户一块：客户名 + 信号强度（打回客户标 ⚠️ 到期/异常）+ 当前档位 → 建议升级档位 + 信号依据（具体数值）+ 📋 近两周跟进摘要 + ✅ 本周动作（Agent 基于跟进手写）
-- 底部 note：数据来源（tenant_metrics + follow_up）+ 抓取时间 + Evaluator 校验（如实写通过/打回数）+ 阈值版本
+- ⛔ 排除客户块（V3.1，有排除时显示）：客户名 + 排除原因（来自基线判定，如出海/仅IM/降版本/全员竞品AI）
+- 打回客户不显示「建议升级」箭头，改写「Evaluator 打回，不做升级建议」——避免卡片自相矛盾
+- 底部 note：数据来源（tenant_metrics + follow_up）+ 排除客户数 + 抓取时间 + Evaluator 校验（如实写通过/打回数）+ 阈值版本
 
 **脱敏选项**：内部用保留客户名；对外分享用「某+行业+企业」。
 
@@ -188,14 +190,17 @@ python3 fetch_followups.py                   # 每周增量：近14天 → /tmp/
 - 🚨 **发送前强制步骤**：必须先跑 c360cli 跟进检索（近14天增量），结合基线档案+跟进情况给策略——没跑跟进检索不允许写策略、不允许发卡片（已写死进 cron prompt）
 - 手动触发：用户说「跑一下商机雷达」→ 手动执行，同样先跑跟进检索（不受双周限制）
 
-全流程命令（三脚本 + 一步 Agent 写作）：
+全流程命令（四步 + Agent 写作两份 JSON）：
 
 ```bash
 cd ~/.hermes/skills/feishu/ai-win-opportunity-radar/scripts
 python3 radar_full.py          # 1. 信号扫描 → /tmp/radar_result.json
 python3 fetch_followups.py     # 2. 每周增量扫描 → /tmp/radar_followups.json（自动复用基线档案+补新客户，不重跑180天）
-# 3. Agent 读雷达结果 + 基线档案(~/.hermes/radar_baseline.json) + 增量摘要，按「基线判定规则」先排除/纠偏，再按「动作增强规则」写 /tmp/radar_actions.json
-python3 send_radar_card.py     # 4. 组装V3卡片发 Home
+# 3. Evaluator 独立复核（数据存在性）：python3 /tmp/verify_metrics.py 重新拉 C360 关键字段与 radar_result 逐项比对
+# 4. Agent 读雷达结果 + 基线档案(~/.hermes/radar_baseline.json) + 增量摘要，按「基线判定规则」先排除/纠偏，再按「动作增强规则」逐户写：
+#      /tmp/radar_actions.json      {客户名: 本周动作文本}
+#      /tmp/radar_exclusions.json   {客户名: 排除原因}（无排除时可不写）
+python3 send_radar_card.py     # 5. 组装V3.1卡片发 Home
 ```
 首次建档（一次性）：`python3 fetch_followups.py --baseline` → 生成 ~/.hermes/radar_baseline.json
 

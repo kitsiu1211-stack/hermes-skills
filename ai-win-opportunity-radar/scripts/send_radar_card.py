@@ -55,7 +55,7 @@ def tier_action(opp):
     return f"{urgency}先确认一把手态度，备好人效数据，推 99 万（模板动作，建议 Agent 基于跟进记录改写）"
 
 
-def build_card(result, followups, actions):
+def build_card(result, followups, actions, exclusions=None):
     findings = sorted(result["findings"], key=sort_key)
     strong = [f for f in findings if "强" in strength_display(f)]
     mid = [f for f in findings if "中" in strength_display(f)]
@@ -84,12 +84,23 @@ def build_card(result, followups, actions):
         elements.append({"tag": "markdown", "content": insight})
         elements.append({"tag": "hr"})
 
+    # 排除客户（V3 基线判定：出海/仅IM/降版本/全员竞品 AI → 非商机）
+    if exclusions:
+        lines = ["<font size=15 weight=bold color=grey>⛔ 排除客户（V3 基线判定，非商机不做升级话术）</font>"]
+        for n, reason in exclusions.items():
+            lines.append(f"<font size=13 color=grey>• {n}：{reason}</font>")
+        elements.append({"tag": "markdown", "content": "\n".join(lines)})
+        elements.append({"tag": "hr"})
+
     for i, f in enumerate(findings, 1):
         opp = f["opportunity"]
         name = f["account_name"]
         lines = []
         lines.append(f"<font size=16 weight=bold>{i}. {name} | {strength_display(f)}</font>")
-        lines.append(f"<font size=14>当前 <font weight=bold>{opp['tier_label']}</font> → 建议升级 <font weight=bold color=red>{opp['target']}</font></font>")
+        if f["evaluator"]["passed"]:
+            lines.append(f"<font size=14>当前 <font weight=bold>{opp['tier_label']}</font> → 建议升级 <font weight=bold color=red>{opp['target']}</font></font>")
+        else:
+            lines.append(f"<font size=14>当前 <font weight=bold>{opp['tier_label']}</font> <font color=grey>（Evaluator 打回，不做升级建议）</font></font>")
         for s in opp["signals"]:
             lines.append(f"📊 {s}")
 
@@ -126,9 +137,10 @@ def build_card(result, followups, actions):
     except Exception:
         time_str = generated
     followup_note = " + follow_up 跟进记录（只读）" if followups else ""
+    excl_note = f" | 排除客户：{len(exclusions)} 家（基线判定）" if exclusions else ""
     elements.append({
         "tag": "note",
-        "elements": [{"tag": "plain_text", "content": f"数据源：C360 tenant_metrics{followup_note} | 抓取时间：{time_str} | Evaluator 校验：{ev_note} | 阈值：主题34 升级信号清单 V3.1"}],
+        "elements": [{"tag": "plain_text", "content": f"数据源：C360 tenant_metrics{followup_note}{excl_note} | 抓取时间：{time_str} | Evaluator 校验：{ev_note} | 阈值：主题34 升级信号清单 V3.1"}],
     })
 
     card = {
@@ -146,7 +158,8 @@ if __name__ == "__main__":
         sys.exit(1)
     followups = load("/tmp/radar_followups.json")
     actions = load("/tmp/radar_actions.json")
-    card = build_card(result, followups, actions)
+    exclusions = load("/tmp/radar_exclusions.json")
+    card = build_card(result, followups, actions, exclusions)
     content = json.dumps(card, ensure_ascii=False)
     r = subprocess.run(
         ["lark-cli", "im", "+messages-send", "--as", "bot", "--msg-type", "interactive",
