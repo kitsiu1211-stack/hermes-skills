@@ -363,6 +363,14 @@ This tripped the user in the 7/22 五行业交叉分析 — the original table l
 
 **先试最简修复：降低 `--limit`**（实测 2026-08-26：`--limit 10` 报 size exceed，`--limit 3` 直接成功）。关键词命中面广（如城市名「汉阳」、单字简称）时同样会触发，先用 limit 3 重试。
 
+🆕 **更干净的首选回退：`search entity --entity account`**（2026-09-17 实测，拓竹场景 `search all` 即使 limit 5 仍报 size exceed）。它只查一个实体组，返回结构更小也更聚焦：
+
+```bash
+lark-c360 search entity --entity account --keyword "深圳拓竹科技有限公司" --limit 5 --json
+```
+
+返回里 account 的 `entity_id`（如 `001BB000002atVhYAI`）在条目顶层，直接拿去查 `follow_up +recent` / `account +profile`。用**全称**而非简称搜，一次就命中正确主体（同时规避第 14 条的同名坑）。
+
 仍失败再回退模式，分实体查反而更干净：
 
 ```bash
@@ -394,7 +402,7 @@ User has a self-built prorated pricing calculator at `https://bytedance.aiforce.
 
 1. **C360 → extract unit price**: `order_item` API → filter by `product` + `purchase_type` → take latest `actual_unit_price`
 2. **C360 → extract expiry**: `order get` → `latest_end_date`
-3. **Call calculator** with `Authorization: Bearer OokzHETWqITNmSpEokF16moXN_eomkNlXp7iQLx1_Xs`
+3. **Call calculator** with `Authorization: Bearer <your-token-here>`
 
 ### Supported purchase types
 
@@ -410,7 +418,7 @@ User has a self-built prorated pricing calculator at `https://bytedance.aiforce.
 # 2. Get expiry from active order
 # 3. Compute
 curl -X POST 'https://bytedance.aiforce.cloud/app/app_4k4ex0bzsderh/openapi/calculator/calculate' \
-  -H 'Authorization: Bearer OokzHETWqITNmSpEokF16moXN_eomkNlXp7iQLx1_Xs' \
+  -H 'Authorization: Bearer <your-token-here>' \
   -H 'Content-Type: application/json' \
   -d '{"purchaseType":"addon","unitPrice":"858","quantity":"500","effectiveDate":"2026-07-06","expiryDate":"2026-12-30"}'
 # → {"finalPrice":209210.96,"daysRemaining":178,"formula":"产品单价 × 席位 × (剩余天数 / 365)",...}
