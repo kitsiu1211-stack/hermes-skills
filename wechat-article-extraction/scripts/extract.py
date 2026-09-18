@@ -75,7 +75,15 @@ if m:
 if not body or len(body) < 100:
     m = re.search(r"content_noencode:\s*'((?:[^'\\]|\\.)*)'", content, re.S)
     if m:
-        body = m.group(1).replace('\\x0a', '\n').replace('\\"', '"').replace("\\'", "'")
+        raw = m.group(1)
+        # \xHH hex escapes first (e.g. \x3c = '<'); covers \x0a \x22 \x27 too.
+        # Some publishers (正和岛 etc.) hex-escape the ENTIRE body this way.
+        body = re.sub(r'\\x([0-9a-fA-F]{2})', lambda mo: chr(int(mo.group(1), 16)), raw)
+        # tags become real after unhexing; then collapse to plain text
+        body = re.sub(r'<br[^>]*>', '\n', body)
+        body = re.sub(r'</p[^>]*>', '\n', body)
+        body = re.sub(r'<[^>]+>', '', body)
+        body = html.unescape(body)
         body = re.sub(r'\n\s*\n+', '\n\n', body).strip()
 
 out = {"title": title, "author": author, "show_type": show_type,

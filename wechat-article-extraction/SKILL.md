@@ -50,11 +50,20 @@ python3 ~/.hermes/skills/research/wechat-article-extraction/scripts/extract.py "
 
 **症状**：搜 `js_content` 找到但 `rich_media_content` div 匹配失败，或提取出一堆 JS 脚本而非正文。特征是 `window.item_show_type = '10'`（TEXT_SHARE_PAGE）。
 
-**正文藏在 JS 变量 `content_noencode` 里**，用单引号包裹、`\x0a` 转义换行：
+**正文藏在 JS 变量 `content_noencode` 里**，用单引号包裹。转义有两种形态，都要能处理：
+- 普通形态：`\x0a` 转义换行、`\"`、`\'` 转义引号
+- 🚨 **全十六进制形态（2026-09-04 正和岛实测）**：整个正文每个字符都转成 `\xHH`（`\x3c`=`<`、`\x22`=`"`、`\x0a`=`\n`）。extract.py 若返回 char_len=0，或手工提取后 body 以 `\x3c`/`\x22` 开头，即命中此形态——**只替换 `\x0a`/`\"`/`\'` 不够，必须通用反 hex**。
 
+通用反转义（extract.py 已内置此逻辑，手写 fallback 时用）：
 ```python
 m = re.search(r"content_noencode:\s*'((?:[^'\\]|\\.)*)'", content, re.S)
-body = m.group(1).replace('\\x0a', '\n').replace('\\"', '"').replace("\\'", "'")
+body = re.sub(r'\\x([0-9a-fA-F]{2})', lambda mo: chr(int(mo.group(1), 16)), m.group(1))
+# 先反 hex 再转段落——此时标签是真实形态
+body = re.sub(r'<br[^>]*>', '\n', body)
+body = re.sub(r'</p[^>]*>', '\n', body)
+body = re.sub(r'<[^>]+>', '', body)
+body = html.unescape(body)
+body = re.sub(r'\n\s*\n+', '\n\n', body).strip()
 ```
 
 - 标题此时用 `og:title` meta 或 `window.msg_title`（`<title>` 标签是空的）
@@ -69,6 +78,6 @@ body = m.group(1).replace('\\x0a', '\n').replace('\\"', '"').replace("\\'", "'")
 ## Pitfalls
 
 - 页面 HTML 里第一个 `js_content` 出现位置可能是 JS 引用而非正文 div，正则要锚定 `id="js_content"` 再往后找
-- `content_noencode` 的值是 JS 字符串转义，`\x0a`、`\"`、`\'` 都要反转义，否则正文粘成一行
+- `content_noencode` 的值是 JS 字符串转义，可能是 `\x0a`/`\"`/`\'` 普通形态，也可能是**全 `\xHH` 十六进制形态**——统一用通用反 hex（`\\x([0-9a-fA-F]{2})` 逐个还原）处理，两种都覆盖，且要先反 hex 再转段落/去标签
 - 提取完保存 `/tmp/wx_article.txt` 供下游 skill 读取，不要把 3MB HTML 带进上下文
 - 🚨 **`author` 字段是转载公众号名，不是原文出处**（2026-08-25 实测）：extract.py 从页面 meta 读 author，转载号（如「关注前沿科技」转载量子位文章）会显示转载号名。下游引用来源时需从正文/文末「来源」/作者署名判断原公众号（如量子位 QbitAI），避免写错来源——用户偏好来源必须查证准确。
