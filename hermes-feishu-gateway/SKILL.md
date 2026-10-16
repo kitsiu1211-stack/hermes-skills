@@ -56,6 +56,58 @@ Poll every `interval` seconds until `expires_in` deadline. Success returns `clie
 - `error: "expired_token"` — device_code expired; restart from Step 1
 - `error: "authorization_pending"` — user hasn't acted yet; keep polling (returns as HTTP 400)
 
+## lark-cli 用户身份授权恢复（`need_user_authorization` / `token_missing`）
+
+上面那套 `accounts.feishu.cn/oauth/v1/app/registration` 是 **Hermes 网关自己注册应用**的流程。这是另一回事：**lark-cli 的用户身份 token 过期**（存在 macOS keychain，与 bot 身份分开）。
+
+### 症状鉴别
+
+```bash
+lark-cli vc +meeting-list-active --as user
+# → {"ok": false, "error": {"type": "authentication", "subtype": "token_missing",
+#     "message": "need_user_authorization (user: ou_xxx)"}}
+
+lark-cli auth status
+# → identities.bot.status = "ready"，identities.user.status = "missing"
+```
+
+**bot ready + user missing** = 只需补用户身份授权，不用碰网关、不用重装、不用重启任何服务。
+
+### 两轮恢复流程（必须分两轮，别在同一轮里阻塞）
+
+**第 1 轮 —— 出链接 + 二维码，然后结束本轮：**
+
+```bash
+# ① 拿 device_code 和 verification_url（有效期 10 分钟）
+lark-cli auth login --scope "vc:meeting.meetingevent:read" --no-wait --json
+
+# ② 生成二维码（URL 是【位置参数】，cwd 必须在允许目录内）
+cd /tmp && lark-cli auth qrcode "https://accounts.feishu.cn/oauth/v1/device/verify?flow_id=...&user_code=XXXX-XXXX" \
+  --output /tmp/lark_auth_qr.png --size 320
+```
+
+- 🔴 **`lark-cli auth qrcode --url <URL>` 会报 `unknown flag "--url"`** —— 正确写法是把 URL 当**位置参数**传：`lark-cli auth qrcode "<URL>" --output <path>`
+- `--output` 必须落在允许根（**cwd、/tmp、~/files**）；先 `cd /tmp` 再写绝对路径即可
+- `--ascii` 只在用户明确要求时用，默认 PNG
+- 回复里 **URL 在前、二维码在后**，并明确说「授权完成后回我一句」，然后**结束本轮**（顶层 `qrcode` 的 PNG 用 `MEDIA:/abs/path.png` 发给用户）
+
+**第 2 轮 —— 用户确认后换 token：**
+
+```bash
+lark-cli auth login --device-code "<第 1 轮拿到的 device_code>"
+# → OK: 登录成功! 用户: 袁鑫杰 (ou_xxx)
+# → 本次已成功授权：vc:meeting.meetingevent:read
+```
+
+完成后**立刻用原命令复验**（如 `lark-cli vc +meeting-list-active --as user`）再继续干活，不要假设成功。
+
+### 坑
+
+1. **每跑一次 `auth login --no-wait`，上一轮的 device_code 立即作废** —— 不要在「已展示 URL」的同一轮里再起一次，也不要短超时反复重试，否则用户手里的链接/二维码就是废的。
+2. **不要在展示 URL 后立刻阻塞执行 `--device-code`**（harness 只发最终消息时会吞掉 URL）。
+3. **scope 要和下一步命令匹配**：静默旁听会议 = `vc:meeting.meetingevent:read`；别用 `--recommend` 大礼包糊上去，重新授权是用户成本。
+4. 输出里 `identities.user.available: false` 时，所有 `--as user` 命令会集体失败——**先修身份再排业务**，不要怀疑业务命令本身。
+
 ## Pitfalls
 
 1. **Wrong endpoint**: Do NOT use `open.feishu.cn/open-apis/authen/v1/device` — it returns 404. Use `accounts.feishu.cn/oauth/v1/app/registration`.
