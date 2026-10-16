@@ -381,6 +381,24 @@ lark-c360 follow_up +recent --account-id <id> --field follow_date --field conten
 
 注意 `opportunity scan` 不支持 `--keyword`，用 `opportunity list --keyword`。
 
+### 13b. 单客户商机全貌：用 `--keyword`，别调 `--filter-json`（2026-09-18 实测）
+
+`--filter-json` 对 opportunity 不可用（见第 10c 条末的 DSL 坑，实测报 `json: cannot unmarshal array into Go value of type map[string]interface {}`）。要拿「某客户全部商机 + ARR + 阶段」，直接拿客户名当 keyword，一次调用搞定，不要在 filter 语法上再花时间：
+
+```bash
+lark-c360 opportunity list --keyword "凯迪仕" \
+  --field name --field stage --field close_date \
+  --field account_name --field owner_id --field arr --limit 30 --json
+```
+
+解析要点（实测返回结构）：
+- 列表在 `data.list`，总数在 `data.total`（第 12 条）
+- `stage` / `owner_id` / `account_name` 的 `display_value` 直接是显示名，不必再 `json.loads`
+- `arr.display_value` 是 **JSON 字符串**：`json.loads(...)` 后取 `currency_value` / `currency_iso_code`（如 `{"currency_iso_code":"CNY","currency_value":1173810}`）
+- `name` 自带日期尾巴（`Oppty-<客户名>-2027-3-23`），不传 `close_date` 也能大致排时序
+- keyword 是模糊匹配，会夹带**子公司/历史主体**记录（实测 `--keyword "凯迪仕"` 夹进 3 条 owner 为方志泽/周朝/金笑男、`account_name` 却统一显示母公司的旧单）→ 按 `owner_id` 过滤出自己名下的
+- 快速读法：`赢单` 的大额是历史签约（看客户基本盘），`客户签约`/推进中的才是在手单，`丢单` 用来看历史拉锯（实测 2026-07-27 丢 12.21万、2026-05-13 丢 18万）
+
 ### 14. 短名搜索会命中错误主体（同名/子公司）——写进纪要前必须核验
 
 会议标题/客户简称搜 C360 时，短关键词可能命中**名称仅包含该词但并非该客户**的主体（子公司、相似名公司）。实测：会议标题「逸文 x 续约+AI 方案采购」用 `search all --keyword "逸文"` 命中了「深圳市博文馨逸文化传媒有限公司」（博商管理科学研究院旗下，名称含「逸文」二字），实际客户是「深圳市逸文科技有限公司」。用户纠正后才找到正确主体。
@@ -393,6 +411,38 @@ lark-c360 follow_up +recent --account-id <id> --field follow_date --field conten
 4. 加后缀重搜：`--keyword "<简称>科技"` 往往直接命中正确主体
 
 **流程**：搜到候选 → 用上述清单核验 → 确认后才写入纪要/卡片。候选主体无跟进、无匹配商机、付费状态对不上 → 换更精确关键词重搜，不要把第一个搜索结果当客户。
+
+### 15. `code=100001 当前请求因安全检测未通过被拦截` = 网关拦截，**不是**授权过期（2026-10-12）
+
+实测：**所有**查询——包括「拓竹」这类此前稳定命中的老客户关键词、以及 `--limit 3` 的小请求——统一返回：
+
+```json
+{"error": {"message": "remote error code=100001 status=200 message=当前请求因安全检测未通过被拦截，如有疑问，参考：https://bytedance.larkoffice.com/wiki/..."}, "ok": false}
+```
+
+**诊断顺序（别跳步、别绕圈）**：
+
+1. 先跑 `lark-c360 auth status --json` 判性质：
+   - `logged_in: true` + `expired: false` → **授权没问题，是网关侧拦截**。`code 100001` ≠ session 过期，**不要**去走上面的 `auth login` 恢复流程（那个只给 `session expired for online` 用）。
+   - 只有 `expired: true` / 报 `session expired` 才走授权恢复。
+2. **不要靠换关键词、改 `--limit`、换 `search entity` 绕** —— 实测换 3 组关键词（短名/全称）全被同样拦下，那只是烧调用次数。拦截是请求级的，不是关键词级的。
+3. **如实交付，绝不补位**：本次就是拿不到客户情报 → 在卡片/纪要里明写「C360 查询被安全网关拦截，本次无账号/商机/跟进数据，可稍后重试」，**不要用会议字幕片语或记忆冒充 C360 数据**。用户明确要求结论需 C360/内部文档验证，编不出来比编出来好。
+4. 结论：把 C360 情报当**可选增强**——先交付不依赖它的部分（纪要、待办、日程、材料检索），再单独说明缺口，别卡在 C360 上不出成果。
+5. **本地证据顶上**（2026-10-12 实测有效，别只交白卷）——**首选现成脚本，别手搓**：
+
+   ```bash
+   # 一键：按最近的会议日志扫关键词，输出「同 speaker 合并成段 + 同文去重 + 单段截断」
+   python3 ~/.hermes/skills/productivity/c360-cli/scripts/mine_meeting_logs.py 拓竹
+   python3 ~/.hermes/skills/productivity/c360-cli/scripts/mine_meeting_logs.py 逸文 --per-file 12
+   ```
+
+   需要自己找线索时再上 grep：
+
+   ```bash
+   grep -ril "<客户简称>" ~/meeting_logs ~/Documents/Obsidian\ Vault   # 历史会议记录 + 笔记
+   ```
+   对命中的 JSONL 用 Python 抽 `type=="transcript"` 行，**按时间排序 → 同 speaker 合并成段 → 去重 → 截断到 ~200 字/行打印**（绝不整份日志倒进上下文）。本地记录足以拿到：客户主体全名、已购版本（实测快造=消费电子/3D 打印、逸文=企业旗舰版＋飞连）、参与角色（CTO/HR）、过去提过的诉求与踩过的坑——撑得起会前背景段。
+   🚩 **必须标注来源**：凡取自本地的内容写明「来自本地历史会议记录，不是 C360」，并点明缺的是哪块（商机阶段/ARR/跟进记录 KDM）。**客户主体全名没经 C360 印证时，不要凭会议标题自行补全法律主体名**（会撞上第 14 条的同名坑）。
 
 ## Business Calculator Integration
 
