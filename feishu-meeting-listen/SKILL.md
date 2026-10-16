@@ -24,9 +24,49 @@ category: feishu
 
 ---
 
+## ⚡ 会议雷达（会中主动预警，2026-10-14 落地）
+
+**用户诉求**：会中自动挖掘「冲突 / 异常 / 对方真实需求 / 我方失手」，发现要用户注意的事**主动私聊**推给他，而不是等他事后问「刚才那场会怎么回事」。
+
+**默认随旁听自动启动**——`poll.sh` 预检通过后 nohup 拉起 `scripts/meeting_radar.py`（`RADAR_ENABLE=0` 可关）：
+
+| 层 | 触发 | 成本 |
+|---|---|---|
+| L1 规则层（9 类，秒级） | 审判式发问 / AI 被否 / 竞品 / 商机 / 决策链 / 风险 / 我方失手 / 当场承诺 / 情绪场压 | **0 token** |
+| L2 模型层（每 6 分钟扫增量字幕，`deepseek-chat`） | 语义级信号：某人背后的真实诉求、我方口径不一致 | ≈¥0.01/场 |
+| L3 会后 | 纪要卡片；**应读 `<mid>.alerts.jsonl` 并入「会中已提醒你的 N 项」** | 同现状 |
+
+**防刷屏**：`once`（宽泛信号整场只报一次）/ `repeat` + 冷却 480s + 文本去重 + 单场上限 12 条 + 每轮最多 1 条 + **首次启动从日志末尾跟**（不回灌历史）。
+
+**🚨 命中必须带上文**（2026-10-14 用户反馈：「这个承诺啥，应该把承诺的上下文结合一起」）：L1 规则命中时，把命中句**之前**最近 3 行字幕（滚动窗口 `recent`，过滤短噪音行）一并推出来 —— 只有一句「这个回头我可以发到群里面」看不出承诺的是什么。零 token，纯字符串窗口。
+
+**推送目标**：Home DM `oc_e2f79ec1614a1efe1ebcd7c679bb45a8`（可用 `RADAR_CHAT` 覆盖）。
+
+详见 `references/proactive-radar.md`（含调参、推送格式、验收记录）。
+
+---
+
 ## 🚨 核心纪律
 
 **唯一入会方案**：官方 Bot 入会（`main.py`）或字幕旁听（`meeting_transcribe.py`）。
+
+### 🆕 Bot 单独入会（用户不在会）+ 预约定时旁听（2026-09-20 落地）
+
+用户说「**as bot 入会，不用说话，结束后发我纪要**」（用户本人不参会）时的标准做法：
+
+```bash
+# 一次性脚本：Bot 入会（带重试）→ nohup 启动 poll.sh → 打印一行状态
+bash ~/.hermes/scripts/anker_hackathon_join.sh <9位会议号> "<会议标题>"
+# 通用版：bash ~/.hermes/scripts/join_meeting_bot.sh <9位会议号> "<标题>"
+```
+
+关键约束（踩过的坑）：
+1. **入会要求「会议进行中」** → cron 任务必须定在**开始时间之后**（如 20:00 的会定 20:01），早 1 分钟也会 121005/121003 失败。脚本内自带重试（默认 8 次 × 60s）兜住晚开场。
+2. **poll.sh 第 3 参数传 `bot`**（或 `START_AS=bot`）→ 从一开始就用 `--as bot` 轮询，用户不在会也不会白跑一轮。预检同步用同一身份。
+3. **`EMPTY_EXIT_ROUNDS`**（默认 15 = 2.5 分钟）→ 长活动/演示型会议静默期常超 2.5 分钟会被**误判会议结束**导致脚本提前退出（实测 30+ 次轮询即退）。这类活动设 `EMPTY_EXIT_ROUNDS=60`（10 分钟）或 `0`（关闭该机制，只靠 `ongoing` 交叉验证兜底）。
+4. **cron 里用 nohup+disown 起 poll.sh**，不要依赖 `terminal(background=True)` 会话存活；脚本输出一行状态即可。
+5. **绝不起 main.py**（不说话 = 不启动语音管线），绝不发会中消息。
+6. 双任务结构：`T+1min` 入会任务 + `T+会议时长+5min` 纪要任务（后者轮询等 `meeting_ended` 出现再出卡片，并 `+meeting-leave --as bot`）。
 
 **🚨 旁听最佳实践（2026-07-28 最终结论）**：直接使用 V3 poll.sh，不要尝试任何 Python 替代脚本。V6 系列三次迭代全部失败（分页冲突卡死、API 停流后空转、0 字节输出）。
 
@@ -186,7 +226,8 @@ bash ~/.hermes/skills/feishu/feishu-meeting-listen/scripts/poll.sh <meeting_id> 
 
 **特性**：
 - 固定 meeting_id——不跳、不丢、不误切
-- Python set() 去重——sentence_id 级别
+- Python set() 去重——sentence_id 级别；**2026-10-12 起 chat/join/leave 也做事件级去重**（chat 键 = 说话人+内容+message_id，join/leave 键 = 说话人+时间）。此前 join/chat 无去重，64 分钟会议写出 4847 行里 4000+ 行是重复的进出/弹幕噪音（实测:737 句字幕 vs 2818 行 join）
+- **静默旁听（--as user）用户离会即退出**（2026-10-12 修复）：原逻辑遇 `user is not in the meeting` 无条件切 `--as bot`，但静默模式下 Bot 未入会 → 后续每轮返回 `bot is not in the meeting` 且不匹配任何退出条件 → 僵尸进程无限空转。现改为先探测 `--as bot`，若 Bot 不在会则写 `meeting_ended` 并退出
 - JSONL 格式干净：`{type, speaker, text, sentence_id, time}`
 - 检测到 "user is not in the meeting" 自动退出
 - 零 token 消耗（纯 bash + Python，不进 LLM）
@@ -1177,7 +1218,9 @@ AI 需求识别
 | 拉事件报 120002 (开关未开) | 会议 owner 未开启「允许智能体入会」 | 让 owner 在会议安全设置中开启（不同于 120003，这是专门的开关校验） |
 | 🚨 **入会报 121016（智能体开关关闭）**（2026-07-23 发现） | `switch for allowing agents to join meetings is disabled` — 会议创建者未在安全设置中开启「允许智能体加入会议」。这是 Bot 入会的独立开关，与 ByteView 音频能力无关。 | 让 owner 在会议设置 → 安全 → 智能会议权限中勾选。打开后 Bot 可入会，但 ByteView 音频仍取决于会议创建时的媒体能力（见下方 121016 vs ByteView）。 |
 | 🚨 **121016 已修复但 ByteView 仍无声**（2026-07-23 发现） | 智能体开关打开后 Bot 成功入会、realtime endpoint 返回有效 WebSocket URL、ByteView 会话创建成功——但服务器**从不推送 audio.downstream.delta**。WebSocket 连接后完全静默。<br>**根因**：ByteView 实时媒体能力是飞书服务端的路由决策，取决于会议创建方式（模板 vs 普通创建）。智能体开关 ≠ 媒体开关。 | **不可修复**（服务端决定）。«袁鑫杰的视频会议»模板创建的会议有 ByteView 音频，其他创建方式可能没有。无音频时自动降级为字幕旁听 + 聊天框文字。实测 378074339（无标题正式会议）6 次尝试全部静默。 |
-| meeting_id 用错 | 用了 9 位会议号 | 用 `+meeting-list-active` 查到的长 ID |
+| 🚨 **改运行中的 poll.sh → 结束检测彻底失效**（2026-10-14 事故） | 疆海 Jira 选型会 18:44:59 结束后，17:01 启动的 poll.sh 进程一直空转到 19:00 都不退出、不写 meeting_ended、不触发通知 → 纪要晚出（用户："会议结束了，还是没有及时输出纪要"）。根因：**我在该进程运行期间直接 patch 了 poll.sh**（17:17 加 leave_reason 检测、17:44 加雷达）——bash 是**按字节偏移增量读取脚本**的，文件被改动后它会从错位的位置继续读，新逻辑根本没执行、旧逻辑也被读碎（副作用：18:32 还被错位重放出一个多余的 radar 进程）。 | ✅ 处置：kill 僵尸进程 → 补写 `meeting_ended` 标记 → 补出纪要。✅ 铁律：**任何 poll.sh / 长跑 bash 脚本的改动，必须先 kill 掉正在运行的实例再改**（状态是文件级的，重启安全，不会丢字幕）。✅ 兜底：`~/.hermes/scripts/meeting_finisher.py`（cron `*/5`，monitor 模式）——会议已结束但进程还在就回收、没出纪要就输出 `PENDING <mid>` 唤醒 Agent 出纪要。 |
+| 🚨 **雷达误伤/刷屏**（2026-10-14 落地时踩到） | ① 首次启动从 offset=0 跟 → 把会前半场一次性回灌成十几条预警；② 宽泛规则（Jira/商机词）每 10 秒报一次刷屏；③ `试用` 命中「测**试用**例」、`包` 命中「**包**括」、`对吧？` 命中一切 | 已修：① `fresh` 状态 → `offset=size`（只跟新内容）② 宽泛信号标 `once`（整场一次）+ 冷却 480s + 单场上限 12 条 + 每轮最多 1 条 ③ 收紧正则 + 句长≥8 字门控 + `(?<!测)试用` 负向环视。**教训：任何"实时推送"上线前必须先跑 `--replay --no-send` 数一遍误报**。 |
+| 🚨 **雷达预警缺上下文，用户看不懂**（2026-10-14 用户反馈） | 只推命中那一句（如「是的，这个回头我可以发到群里面」），用户回「这个承诺啥，应该把承诺的上下文结合一起」——预警的价值在上下文，不在句本身。 | ✅ 已修 `meeting_radar.py`：维护 12 行滚动字幕窗口 `recent`，命中时取 `recent[:-1]` → `clean_ctx()`（丢 <6 字噪音行 + 连续重复，取最近 3 行、每行截 90 字）→ 渲染成「上文 / 👇 命中」；`ctx` 同时落进 `<mid>.alerts.jsonl`。零 token。**改完必须重启雷达进程**（`pkill -f "meeting_radar.py <mid>"` → 把 state 的 `offset` 跟到日志末尾再冷启，否则回灌积压）。 |
 | 拿不到实时字幕 | 会议未开启字幕/转写功能 | 确认会议开启了字幕 |
 | lark-cli 报 401 | 授权过期或 scope 不全 | 重新执行 `lark-cli auth login --scope "vc:meeting.meetingevent:read"` |
 | `--as user` 报错 | 未完成用户授权 | 先执行授权流程（两个阶段） |
@@ -1195,6 +1238,8 @@ AI 需求识别
 | 🚨 **.env 尾部注释污染 speaker 值**（2026-07-17） | `DOUBAO_TTS_SPEAKER=zh_female_xiaohe_uranus_bigtts  # 小何 2.0` → parser 读成 `"zh_female_xiaohe_uranus_bigtts  # 小何 2.0"` → 豆包 TTS 静默失败。手工 TTS 测试正常、脚本内失败——极难排查。 | `.env` 所有值的末尾**禁止行内 `# 注释`**。排查：`print()` `.env` 加载后值。**和 asyncio 子进程问题叠加时更难排查——先验 `.env` 值。** |
 \n
 \n| 🚨 **智能体入会开关关闭 → 脚本空转 1 小时**（2026-07-29 发现并修复） | 会议 owner 关闭「允许智能体加入会议」→ `meeting-events` API 返回 `"switch for allowing agents to join meetings is disabled"` → V3 poll.sh 无限循环空转（实测 62 分钟零数据）。 | ✅ **已修复**：poll.sh 第 21-29 行新增预检——正式轮询前先调一次 `meeting-events`，grep `"switch for allowing agents"`，命中则立即退出输出「智能体入会开关已关闭，无法监听」。避免无效空转。 |
+| 🚨 **Bot 模式会议进行中被误判"已结束"（2 分钟即退出）**（2026-10-13 发现并修复） | 豆包有约第 9 期（140275485）：Bot 入会正常、`meeting-events --as bot` 实测 `status: ongoing`，但 poll.sh 机制 2 连续 2 轮"未返回 ongoing"即判定结束，12 轮（约 2 分钟）就退出。根因：探测请求被限流/超时返回空或错误响应时，原逻辑 `! grep -q '"ongoing"'` 把「探测失败」当成「会议结束」。 | ✅ 已修复 `scripts/poll.sh`：机制 2 改为三分支——① 有 `"ongoing"` → 清零继续；② 有 `"ok": true` 且非 ongoing → 才计数（连续 2 次判结束）；③ 无 `ok: true`（限流/超时/空响应）→ 视为「未知」，不计数、继续轮询。教训：**任何"结束检测"都必须区分「明确否定」和「探测失败」**，否则会把限流当散会。 |
+| 🚨 **Bot 模式会议结束后僵尸进程无限空转**（2026-10-14 发现并修复） | 会议「豆包工作办公agent沟通」（7696414090827303927）16:16 结束后，poll.sh 进程一直空转到 17:00（324 轮）。两个根因叠加：① Bot 模式会议结束后 `meeting-events --as bot` 返回的是 `{"ok": false, "code": 120004, "msg": "bot is not in the meeting"}` —— 既无 `"status": "ended"` 也无 `"ok": true`，两条既有检测都不命中，机制 2 一律走「探测失败，继续轮询」；② 机制 1 的计数器写在 `python3 -c "..."` 的**子进程**里（`EMPTY_COUNT=$((...))` 被 bash 提前展开成一个数字字面量），父 shell 永不累加 → `EMPTY_EXIT_ROUNDS` 事实上完全失效。 | ✅ 已修复 `scripts/poll.sh`：① 新增独立分支——Bot 模式下连续 2 轮出现 `bot is not in the meeting` 即写 `meeting_ended` 并退出（`BOT_GONE` 计数器）；② Python 只打印 `NEW`/`EMPTY` 标记（`NEW_MARK=$(...)`），计数与判定全部回到父 shell，机制 1 恢复生效；③ **返回里其实早就带了权威结束信号 `leave_reason=2`（会议结束），脚本当时不认识它**——同轮解析写盘后 grep `'\"leave_reason\":[[:space:]]*\"?2[\",}]'` 命中即写 `meeting_ended` 退出（user/bot 两种身份都可见，实测睿魔会议 16:16:48 就落了该事件；放在解析之后判定以免丢最后几句字幕。已用假 lark-cli 做端到端回归：第 1 轮即退出）。教训：**bash 脚本里 `$((...))` 出现在传给子进程的字符串中会被父 shell 提前展开**，凡是跨进程计数都必须用 stdout 回传标记，不要在子进程内写父进程变量。 |
 | 🚨 **旁听脚本 0 字幕 + 持续空转**（2026-07-23 发现） | 部分正式会议（如 378074339、AI加速专项双周会 322112843）即便智能体开关已开启、会议有真人发言，`transcript_received` 事件仍不推送——旁听结束后字幕为 0 条。**这些会议类型既无 ByteView 音频流，也无文字转写事件**，属于飞书服务端的策略差异。 | 无法修复（服务端决定）。遇到此类会议通知用户「本会议不支持实时转写，请在会后通过妙记复盘」。 | | `listen_subtitles.py` 用连续 APII 空返回 > 4 轮判结束。API 超时/会议静默 → 假阳性。CodeM 培训 + CEO 对话均被误杀。 | 改为 `meeting_still_active()` 验证：空返回后先调 `+meeting-list-active` 确认会议是否真不在活跃列表。修复版已上线，验证通过（CEO 会议期间 4 次静默均未误杀）。教训：**API 空返回 ≠ 会议结束。必须交叉验证。** |
 | 🚨 **旁听脚本 crash 丢字幕**（2026-07-22，已修复） | 会议结束 lark-cli 返回空 JSON → `JSONDecodeError` → 异常未捕获，字幕全程丢失。 | `get_events()` 加 try/except JSONDecodeError → 返回 []；`main` loop 外层加 broad except + `save_progress()` 兜底；每轮新字幕后增量写盘。 |
 | 🚨 **旁听脚本 0 字幕 + 空转 376 轮**（2026-07-22，已修复） | 会议「允许智能体加入会议」开关关闭 → lark-cli 返回错误码 120002 → 旧版当空事件处理 → 持续空转。大湾区 Power Hour 实测 0 字幕。 | `get_events()` 检测 `ok: false` + code 120002 → 返回 error 元组 → 主循环立即 `print("[无法旁听] 智能体不可入会")` 并退出。详见 `references/listen-subtitles-version-history.md`。 |
