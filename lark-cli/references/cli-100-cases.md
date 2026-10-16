@@ -106,3 +106,16 @@ req = urllib.request.Request("https://open.feishu.cn/open-apis/im/v1/messages?re
 - 容错: `2>/dev/null || echo 'fallback'`  
 - 后台: launchd / `&` / crontab  
 - 多卡分片: elements ≤ 10, 末尾标注 "卡片 N/M"
+
+## 七、聊天/会议证据还原（补）
+
+`im +messages-search` 需未授权的 `search:message` scope（报 `missing required scope(s): search:message`）——**别卡在这**，用这条链（示例 104-107，详见 `references/chat-evidence-retrieval.md`）：
+
+| # | 命令 | 用途 |
+|---|------|------|
+| 104 | `lark-cli im +chat-search --query "<客户名/同事名>" --as user` | 按名字找群，拿 `chat_id`（`external:true` = 客户群） |
+| 105 | `lark-cli im +chat-messages-list --as user --chat-id oc_xxx --page-size 40 --order desc --start "<当天>+08:00"` | 读群消息（结果在 `data.messages[]`）；一对一改 `--user-id ou_xxx` |
+| 106 | `lark-cli contact +search-user --query "<姓名>" --as user` | 姓名 → `open_id`（**是 `+search-user`**，没有 `+user-search`） |
+| 107 | `lark-cli im +messages-resources-download --as user --message-id om_xxx --file-key img_v3_xxx --type image --output ./x.png` | 下载会中/群里的图片，再用 vision 读成文字 |
+
+两个实测坑：① `--page-size 80` 返回 0 条、`--page-size 40` 同一会话正常 → 空返回先缩 page-size；② 会中聊天框的图片/表格**只在会议同步群**里，`vc +meeting-events` 的 `chat_received_items` 只回表情短文本。

@@ -18,7 +18,8 @@ import json, re, subprocess
 
 CHAT = "oc_e2f79ec1614a1efe1ebcd7c679bb45a8"   # 默认 Home
 
-def md(c):        # 正文照常写 **粗体**，自动转飞书认的 <font>
+def md(*lines):   # 多段自动用 \n 拼接；正文照常写 **粗体**，自动转飞书认的 <font>
+    c = "\n".join(lines)
     c = re.sub(r"\*\*(.+?)\*\*", r"<font weight=bold>\1</font>", c)
     return {"tag": "markdown", "content": c}
 
@@ -68,6 +69,8 @@ for c in (card1, card2, card3):
 
 ## 已踩过的坑
 
+- 🚨 **多行正文不要跨行拼字符串**（2026-10-15 踩到，写一次报一次）：手写 `md("第一段" + "\n\n" + H("小标题"))` 时若换行续写、下一行直接以 `H(...)` 开头＝两个相邻表达式，Python 直接 `SyntaxError: invalid syntax. Perhaps you forgot a comma?`（报错行号还指向上一行，容易看歪）。统一用上面的 variadic `md(*lines)` 或 `md("\n".join([...]))`，不要用 `+ "\n"` 手动续行；写完 `write_file` 的 lint 会顺手把这类错揪出来，别忽略 lint 报错。
+- **校验卡片是否真发出去**用 `lark-cli im +chat-messages-list --as user --chat-id <oc_…> --page-size 4 --order desc`（`content` 字段里能看到 `<card title="…">`）；**`--as bot` 查这个列表实测返回空**，别据此以为没发出去。脚本末尾也要打 `{"ok": true}` + `message_id`（见 pitfall 23）。
 - `tag: markdown` 的 content **不支持** `**粗体**`、`##`、表格、`---` → 用 `<font weight=bold>` / `<font size=16 weight=bold>` / `{"tag": "hr"}`。
 - `<font color=red>` 属性不能加引号（`color='red'` 会失效甚至发送失败）。
 - `note.elements` 只能 `plain_text`，塞 `<a>` 会报 230099 parse card json err。
