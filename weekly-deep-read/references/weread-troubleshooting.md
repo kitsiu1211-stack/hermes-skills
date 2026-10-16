@@ -61,5 +61,17 @@ unzip -o /tmp/weread.zip -d /tmp/weread-update
 cp /tmp/weread-update/weread-skills/*.md ~/.hermes/skills/weread/references/
 
 # 2. 更新 SKILL_VERSION
-# dist/client.js 中: export const SKILL_VERSION = "1.0.4";
+# dist/client.js 中: export const SKILL_VERSION = "1.0.4";  → "1.0.5"
 ```
+
+### 2026-10-11 实测（1.0.4 → 1.0.5）
+
+- 触发场景：`weread doctor` 报 Ready 且 skill_version 1.0.4，但 `shelf list` / `search` 全部返回
+  `upgrade_required`（`ok:false`），**注意回包里仍带 `response` 原始数据**，别误判成成功。
+- `current_version` 取自 **CLI 常量** `dist/client.js` 的 `SKILL_VERSION`（随请求发给服务端），
+  **不是**读本地 SKILL.md —— 所以只覆盖 references/ 文件不生效，必须改这个常量。
+- ⚠️ **不要 `npm i -g weread-agent-cli` 升到 0.1.4**：实测 0.1.4 仍写死
+  `SKILL_VERSION = "1.0.4"`，且 **不含** 上面那个 IPv6 `family:4` patch（`grep -c "family: 4"` = 0）。
+  升级会同时打破 IPv6 连接并让 upgrade_required 复发。当前正确姿势 = 保留 0.1.2 + 手改常量。
+- 顺手确认：zip 内 10 个文件（SKILL.md / SERVICE_PROFILE.md / search,shelf,book,notes,readdata,review,discover,profile）
+  对应 `~/.hermes/skills/weread/references/`；`domain-rules.md`、`first-use.md` 是本地自建文件，**不在 zip 里，别删**。
