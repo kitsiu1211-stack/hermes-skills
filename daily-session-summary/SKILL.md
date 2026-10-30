@@ -113,12 +113,19 @@ If no substantive conversations happened today, send a brief note:
   2. `gateway.log` 断层期**一行不写**（连每日 00:35 的 curator 行都没有）；
   3. `state.db` mtime 冻结在断层起点。
   关键区分：**进程 `etime` 是连续的**（`ps -eo pid,lstart,etime`，macOS 的 `etime`/`uptime` 把睡眠算进去），所以“PID 已跑 19 天”**不代表**它一直在干活。辅证：唤醒瞬间 Lark 会报 `keepalive ping timeout` 断开再自动重连——这是 TCP 睡死了的正常现象，不是故障。卡片里要如实写“系统休眠 N 天 + 唤醒后 N 个 job 同秒补跑”，别写成“安静的N天”。
+- **电量耗尽式休眠（2026-10-21 实测）：和"合盖休眠"是同一类，但判定证据不同**。当天 gateway.log 只有 2 行（04:25 session expiry）、`Inbound`=0、state.db 里只有 cron 会话——看着像"安静的一天"，实际是机器睡死了。**两条命令定案**：
+  1. `pmset -g log | grep -E "Entering Sleep state|Wake from" | grep -E "^<日期>" | sed 's/\[System.*//' | cut -c1-200 | tail -30` —— 本次看到 `09:11 Charge:1%` → `09:26:54 Entering Sleep ... 'Low Power Sleep'` → `23:52:42 Wake from Hibernate ... Charge:100%`，中间 `51948 secs`（14.4 小时）；
+  2. `pmset -g batt` —— 当前电源与电量（`Now drawing from 'Battery Power' 100%; discharging`）。
+  辅证：`uptime` 连续（如 7 天 18 小时）**同时 PID 未变** = 休眠而非重启；醒来瞬间 Lark 报 `keepalive ping timeout` 是正常现象。注意 `pmset -g log` 里大量 `DarkWake ... Maintenance Sleep` 是呼吸式唤醒，别当成"机器一直在跑"。
+- **查"为什么昨天没收到摘要"最快的一条命令是 `hermes cron list`（2026-10-21 实测）**：`Last run:` 行直接给出 `error: TimeoutError: Cron job '<name>' idle for 914s (limit 600s) — last activity: waiting for non-streaming API response` + `Execution: running/failed`，比翻 executions.db 猜状态清楚得多。`idle for N s + waiting for non-streaming API response` ≈ 进程被系统挂起（休眠），**不是 provider 故障、不是 fallback 问题**，别去换模型。同时能看到 `Schedule:`（本次发现认知对话实为 `5 9 * * *` 而非 09:10）和 `Next run:`。
+- **前几期失败要在卡里交代清楚（2026-10-21 实测）**：用户只收到过 failure notice，不知道根因、也不知道少了哪一期。摘要里补三件事——① 哪一期缺了；② 那期的实质内容是否另有出口（如会议纪要当时已单独发卡，内容没丢）；③ 触发词让用户一句话就能补跑（如「补跑 10-20 摘要」）。
 - **长内容审查（含 `hermes gateway restart` 文本）不要出现在 bash 命令行里**：Evaluator 要核对的卡片草稿若含该命令，写成「`hermes gateway` + `restart` 子命令（已用 `hermes gateway --help` 验证存在）」即可，避免触发重启护栏；`--content "$(cat card.json)"` 发卡片不受影响。
 - session_search 报 `disk I/O error` ≠ 安静的一天（2026-09-23 实测）。这是 gateway 进程 WAL 句柄污染，会伪装成漏报。判定三步：
   1. 直查原始 SQL（sqlite3 CLI 读通常仍正常）：`SELECT id,source,title,message_count FROM sessions WHERE started_at >= strftime('%s','<今天> 00:00:00','utc');` + `SELECT date(timestamp,'unixepoch','localtime'), count(*) FROM messages GROUP BY 1 ORDER BY 1 DESC LIMIT 5;`（注意 messages 的时间列是 `timestamp`，不是 `created_at`）
   2. 对比 WAL：`lsof -p <hermes主进程PID> | grep state.db` 看进程持有的 `state.db-wal` 大小，再 `ls -la ~/.hermes/state.db-wal` 看磁盘。**进程持有 MB 级 -wal 而磁盘是 0 字节 = WAL/shm 不一致**，该进程所有查询都会报 I/O error，且 state.db 停止写入（mtime 卡在某天）。`PRAGMA integrity_check` 会是 ok —— 文件没坏，坏的是活进程的句柄。
   3. 旁证：`find ~/.hermes/sessions -type f -newermt "<日期>"`、`grep -E "^<日期>" ~/.hermes/logs/gateway.log | grep -viE "trying to reconnect|connect failed"`、agent.log。三者都空才敢写「安静的一天」。
   - 修复=重启 gateway（`hermes gateway restart`）。**cron 自身就跑在 gateway 进程内，不能自重启**（会把自己杀掉、卡片发不出去），所以要把根因+修复+验证方式写进卡片交给用户手动执行。验证=`state.db` 的 mtime 随新会话往后推进。
+- **`database disk image is malformed (11)` = 真损坏，不是 WAL 句柄 bug（2026-10-24 实测）**：`sqlite3` 和 venv python(3.53.1) 都报 malformed → 换解释器救不了。判据：① `hermes doctor` 末段直接给病因 `state.db FTS write corruption — run 'hermes doctor --fix' (or 'hermes sessions repair')`；② 部分读仍可用（`SELECT count(*) ... WHERE started_at>=...` 能出数，但带列名/ORDER BY 的查询就炸）→ 说明坏在行页与 FTS 层，数据没丢。当天表现：inbound 有一条但 gateway 报 `Failed to create session row` + `FOREIGN KEY constraint failed`，bot 回用户「No reply: …session storage could not be written」。修复链（cron 内只报告不自修）：`hermes sessions repair --check-only` → `hermes sessions repair` → 重启 gateway → `hermes sessions stats` 验证 → `hermes sessions optimize-storage` + `optimize` 根治（迁 v23 紧凑索引），最后再删旧损坏备份。写卡片时**别把「备份存在」推断成「修过且成功」**，Evaluator 会扣分。
 - session_search browse mode returns sessions sorted by recency; filter by `when` date before processing
 - The card JSON must be properly serialized via `json.dumps(card, ensure_ascii=False)` — then passed as the `--content` argument to `lark-cli`
 - Don't include every tiny interaction — only substantive discussions matter
