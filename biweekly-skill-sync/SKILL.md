@@ -66,7 +66,25 @@ find ~/.hermes/skills -type f -mtime -14 -not -path '*/.git/*' -not -path '*/nod
 |------|------|
 | `/tmp/hermes-skills` **每次会话都被清空** | 不要假设本地已有镜像仓库，每次重新拉 |
 | `git clone` / `git push` 到 github.com **超时**（443 被墙） | 不要用 git，用 `gh api`（Git Data API） |
-| `gh` CLI 已认证 kitsiu1211-stack，`gh api` 正常 | 上传走 API |
+| **`api.github.com` 会 DNS 污染**（2026-10-30 实测：`gh api` 和裸 curl 全部 `error connecting`，但固定 IP 140.82.112.6 秒通） | 先探测，再决定走 `gh` 还是 IP 直连 |
+| 镜像读取可走 `ghproxy.net` 代理下载 tarball（只读，别指望 push） | `curl -sL -o pub.tar.gz "https://ghproxy.net/https://github.com/<owner>/<repo>/archive/refs/heads/main.tar.gz"`（16MB 左右，给足 300s；截断会报 `truncated gzip input`） |
+
+### 网络诊断三步（每次同步开头先跑，10 秒）
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" --max-time 12 https://api.github.com/rate_limit        # 000 = 不通
+for ip in 140.82.112.6 20.205.243.168 4.237.22.38; do
+  printf "%-16s " $ip; curl -s -o /dev/null -w "%{http_code}\n" --max-time 8 \
+    --resolve api.github.com:443:$ip https://api.github.com/rate_limit; done                   # 200 = 该 IP 可用
+```
+
+- 直连 200 → 默认 `gh api` 路径（`gh_sync.py` 不设 `GH_API_RESOLVE`）。
+- 直连 000 但某 IP 200 → DNS 污染，**不要**去改 `/etc/hosts`（无 sudo），直接：
+  ```bash
+  GH_API_RESOLVE=140.82.112.6 python3 scripts/gh_sync.py <owner/repo> /tmp/manifest.json
+  ```
+  `gh_sync.py` 见到该变量就走 `curl --resolve` 打同一个 REST API（token 从 `gh auth token` 本地读）。
+- 全都 000 → 网络整体断，GitHub 部分记失败，先做 SkillHub，回执发 `fail` 写明原因。
 
 **两个镜像仓库**（skill 在仓库里是**扁平目录**，目录名 = skill 名，不带 category 前缀）：
 

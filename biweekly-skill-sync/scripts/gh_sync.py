@@ -17,10 +17,17 @@ manifest.json:
 """
 import base64
 import json
+import os
 import re
 import subprocess
 import sys
 import time
+
+# When set (e.g. "140.82.112.6"), call the GitHub REST API with `curl --resolve`
+# instead of `gh api`. Needed when api.github.com is DNS-poisoned: `gh` (and plain
+# curl) fail to resolve, but the same hostname reaches GitHub fine once pinned to a
+# real edge IP. See references/github-api-upload-workaround.md.
+GH_API_RESOLVE = os.environ.get("GH_API_RESOLVE", "").strip()
 
 SECRET_PATTERNS = [
     (re.compile(r"(Bearer\s+)[A-Za-z0-9_\-]{20,}"), r"\1<your-token-here>"),
@@ -28,7 +35,50 @@ SECRET_PATTERNS = [
 ]
 
 
+def _token():
+    tok = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if tok:
+        return tok
+    return subprocess.run(["gh", "auth", "token"], capture_output=True).stdout.decode().strip()
+
+
+def _gh_curl(endpoint, method, payload):
+    url = "https://api.github.com/" + endpoint.lstrip("/")
+    cmd = [
+        "curl", "-sS", "--max-time", "120",
+        "--resolve", "api.github.com:443:%s" % GH_API_RESOLVE,
+        "-H", "Authorization: token %s" % _token(),
+        "-H", "Accept: application/vnd.github+json",
+        "-X", method,
+        "-w", "\n%{http_code}",
+        url,
+    ]
+    if payload is not None:
+        cmd += ["--data-binary", "@-"]
+    last = None
+    for attempt in range(3):
+        p = subprocess.run(
+            cmd,
+            input=json.dumps(payload).encode() if payload is not None else None,
+            capture_output=True,
+        )
+        out = p.stdout.decode()
+        if "\n" in out:
+            body, code = out.rsplit("\n", 1)
+            code = code.strip()
+        else:
+            body, code = "", "000"
+        if code.startswith("2"):
+            body = body.strip()
+            return json.loads(body) if body else {}
+        last = "HTTP %s %s" % (code, body.strip()[:300])
+        time.sleep(2 + attempt * 3)
+    raise RuntimeError("api %s %s failed: %s" % (endpoint, method, last))
+
+
 def gh(endpoint, method="GET", payload=None):
+    if GH_API_RESOLVE:
+        return _gh_curl(endpoint, method, payload)
     cmd = ["gh", "api", endpoint, "-X", method]
     if payload is not None:
         cmd += ["--input", "-"]
