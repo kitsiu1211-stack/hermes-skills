@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<!-- 一页纸框架图骨架。已调好 CJK 字体、配色、2x 出图。
+     替换：{{KICKER}} {{H1}} {{SUB}} 及各模块文案；模块可按需删（保留 01/02/03 编号连续性）。
+     出图：node scripts/shot.js poster.html out.png 1240 2 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    width:1240px; background:#F6F2EA; color:#1B1A17;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page { padding:56px 60px 44px; position:relative; }
+  .page::before{ /* 极浅网点，去掉也行 */
+    content:""; position:absolute; inset:0;
+    background-image:radial-gradient(#D9D1C2 0.7px, transparent 0.7px);
+    background-size:22px 22px; opacity:.35; pointer-events:none;
+  }
+  .page > * { position:relative; }
+
+  .kicker { font-size:12.5px; letter-spacing:.22em; color:#8A8272; font-weight:600; }
+  h1 { font-size:50px; line-height:1.22; letter-spacing:-.5px; font-weight:800; margin-top:16px; max-width:1010px; }
+  h1 em { font-style:normal; color:#B4472A; }
+  .sub { margin-top:16px; font-size:16.5px; line-height:1.8; color:#4A453B; max-width:1080px; }
+  .sub b { color:#1B1A17; }
+  .rule { height:3px; width:96px; background:#1B1A17; margin-top:26px; }
+
+  /* 模块一：判据条 */
+  .judge { margin-top:34px; background:#1B1A17; border-radius:14px; padding:30px 34px 32px; color:#F3EEE2; }
+  .judge .kick { font-size:11.5px; letter-spacing:.24em; color:#9C937F; font-weight:600; }
+  .judge .q { font-size:29px; font-weight:700; margin-top:10px; letter-spacing:-.2px; }
+  .branches { display:flex; gap:16px; margin-top:24px; }
+  .br { flex:1; border-radius:10px; padding:18px 20px 19px; }
+  .br.agent { background:#22453E; border:1px solid #38655B; }
+  .br.human { background:#4A2418; border:1px solid #7A4530; }
+  .br .tag { display:inline-block; font-size:12px; font-weight:700; letter-spacing:.08em; padding:3px 9px; border-radius:4px; }
+  .br.agent .tag { background:#5E9E8C; color:#12241F; }
+  .br.human .tag { background:#D5794F; color:#2A1008; }
+  .br .own { font-size:19px; font-weight:800; margin-top:12px; }
+  .br .desc { font-size:13px; color:#C9C2B0; margin-top:7px; line-height:1.6; }
+  .br .act { font-size:13.5px; margin-top:12px; line-height:1.65; color:#EDE7D8; border-top:1px dashed rgba(255,255,255,.18); padding-top:11px; }
+
+  /* 章节头 */
+  .sec { margin-top:44px; }
+  .sec-head { display:flex; align-items:baseline; gap:14px; margin-bottom:20px; }
+  .sec-no { font-size:12px; font-weight:800; letter-spacing:.1em; color:#F6F2EA; background:#1B1A17; padding:3px 8px; border-radius:3px; }
+  .sec-t { font-size:22px; font-weight:800; letter-spacing:-.2px; }
+  .sec-note { font-size:13px; color:#8A8272; margin-left:auto; }
+
+  /* 模块二：分度栏 */
+  .flow { display:flex; gap:12px; }
+  .step { flex:1; background:#FFFDF8; border:1px solid #E3DACA; border-radius:11px; padding:18px 16px 16px; display:flex; flex-direction:column; }
+  .step .n { font-size:11.5px; font-weight:800; color:#A79C86; letter-spacing:.14em; }
+  .step .name { font-size:16.5px; font-weight:800; margin-top:7px; line-height:1.35; }
+  .own-badge { display:inline-block; margin-top:11px; font-size:11.5px; font-weight:700; padding:3px 8px; border-radius:3px; }
+  .o-agent { background:#E2EDE8; color:#1B4A40; }
+  .o-mix   { background:#EDE6D6; color:#5C5238; }
+  .o-human { background:#F7E2D7; color:#8A3416; }
+  .step ul { list-style:none; margin-top:13px; }
+  .step li { font-size:12.5px; line-height:1.65; color:#4A453B; padding-left:11px; position:relative; }
+  .step li::before { content:""; position:absolute; left:0; top:8px; width:4px; height:4px; border-radius:50%; background:#B9AE96; }
+  .meter { margin-top:auto; padding-top:14px; }
+  .meter .lbl { display:flex; justify-content:space-between; font-size:10.5px; color:#8A8272; margin-bottom:5px; letter-spacing:.04em; }
+  .bar { height:5px; border-radius:3px; background:#EAE2D2; overflow:hidden; }
+  .bar i { display:block; height:100%; border-radius:3px; }
+  .backline { margin-top:14px; border:1px dashed #C9BEA8; border-radius:9px; background:#FBF7EE; padding:14px 18px; font-size:13px; line-height:1.75; color:#3D382F; }
+  .backline b { color:#B4472A; }
+  .backline span.k { color:#1B4A40; font-weight:700; }
+
+  /* 模块三：分拣机 */
+  .mem-wrap { display:flex; gap:14px; align-items:stretch; }
+  .quote { width:214px; flex:none; background:#1B1A17; color:#F3EEE2; border-radius:11px; padding:24px 20px;
+           display:flex; flex-direction:column; justify-content:center; border-left:4px solid #B4472A; }
+  .quote .qm { font-size:11.5px; letter-spacing:.2em; color:#B4472A; font-weight:700; }
+  .quote .txt { font-size:16.5px; font-weight:700; line-height:1.65; margin-top:12px; }
+  .quote .who { font-size:11.5px; color:#9C937F; margin-top:14px; line-height:1.6; }
+  .channels { flex:1; display:flex; flex-direction:column; gap:12px; }
+  .chan { border-radius:11px; padding:17px 20px; display:flex; align-items:center; gap:16px; }
+  .chan.hard { background:#E6F0EB; border:1px solid #B9D3C7; }
+  .chan.soft { background:#FBEDE4; border:1px solid #E6C3AD; }
+  .chan .cn { flex:none; width:104px; }
+  .chan .cn .t1 { font-size:15px; font-weight:800; }
+  .chan .cn .t2 { font-size:11.5px; color:#6B6558; margin-top:4px; line-height:1.5; }
+  .chan .arrow { flex:none; font-size:16px; color:#9C937F; }
+  .chipbox { flex:1; display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { font-size:11.5px; padding:3px 9px; border-radius:20px; background:rgba(255,255,255,.75); border:1px solid rgba(0,0,0,.08); color:#3D382F; }
+  .chan .out { flex:none; width:222px; border-left:1px solid rgba(0,0,0,.1); padding-left:16px; }
+  .chan .out .ot { font-size:13.5px; font-weight:800; }
+  .chan .out .od { font-size:11.5px; color:#4A453B; margin-top:5px; line-height:1.55; }
+  .mem-note { margin-top:12px; font-size:13px; color:#4A453B; text-align:right; }
+  .mem-note b { color:#1B1A17; }
+
+  /* 模块四：风险 + 解药 */
+  .risk { display:flex; gap:14px; }
+  .risk-l, .risk-r { border-radius:11px; padding:22px 24px; }
+  .risk-l { width:400px; flex:none; background:#4A2418; color:#F6E7DE; display:flex; flex-direction:column; justify-content:center; }
+  .risk-r { flex:1; background:#FFFDF8; border:1px solid #E3DACA; }
+  .rn { font-size:11.5px; letter-spacing:.2em; font-weight:700; }
+  .risk-l .rn { color:#E3A882; }
+  .risk-r .rn { color:#8A8272; }
+  .risk-l h3, .risk-r h3 { font-size:20px; font-weight:800; margin-top:10px; letter-spacing:-.2px; }
+  .chain { margin-top:14px; font-size:12.5px; line-height:1.9; color:#EBD6C8; }
+  .chain b { color:#F0A87E; }
+  .cures { margin-top:13px; display:flex; flex-direction:column; gap:9px; }
+  .cure { display:flex; gap:11px; font-size:13px; line-height:1.65; color:#3D382F; }
+  .cure .num { flex:none; width:19px; height:19px; border-radius:50%; background:#1B1A17; color:#F6F2EA; font-size:11px; font-weight:800;
+               display:flex; align-items:center; justify-content:center; margin-top:2px; }
+
+  /* 模块五：结论条 + 页脚 */
+  .end { margin-top:40px; background:#1B1A17; border-radius:14px; padding:32px 36px; color:#F3EEE2; }
+  .end .kick { font-size:11.5px; letter-spacing:.24em; color:#9C937F; font-weight:600; }
+  .end .big { font-size:24px; font-weight:800; line-height:1.55; margin-top:14px; letter-spacing:-.2px; }
+  .end .big .a { color:#7FBFA9; }
+  .end .big .h { color:#E89B72; }
+  .end .fin { font-size:14px; color:#BDB5A2; margin-top:16px; line-height:1.75; }
+  .foot { margin-top:26px; display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:#948C7B; letter-spacing:.05em; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="kicker">{{KICKER}}</div>
+  <h1>{{H1_第一行}}<br>{{H1_第二行_可含<em>强调</em>}}</h1>
+  <div class="sub">
+    {{SUB_第一段}}<br>
+    <b>{{SUB_重点句}}</b>{{SUB_第三段}}<br>
+    {{SUB_第四段}}
+  </div>
+  <div class="rule"></div>
+
+  <!-- 模块一：判据条 -->
+  <div class="judge">
+    <div class="kick">{{判据标签}}</div>
+    <div class="q">{{全图唯一要回答的那个问题}}</div>
+    <div class="branches">
+      <div class="br agent">
+        <span class="tag">{{左分支标签}}</span>
+        <div class="own">{{左分支由谁承接}}</div>
+        <div class="desc">{{判定标准，一句话}}</div>
+        <div class="act">{{具体动作 ／ 动作 ／ 动作}}</div>
+      </div>
+      <div class="br human">
+        <span class="tag">{{右分支标签}}</span>
+        <div class="own">{{右分支由谁承接}}</div>
+        <div class="desc">{{判定标准，一句话}}</div>
+        <div class="act">{{具体动作 ／ 动作 ／ 动作}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模块二：分度栏（3–4 栏，按比例排序） -->
+  <div class="sec">
+    <div class="sec-head">
+      <span class="sec-no">01</span>
+      <span class="sec-t">{{章节标题：把 X 按 Y 重新排，而不是按 Z 排}}</span>
+      <span class="sec-note">{{读图提示：灰色条＝什么}}</span>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <div class="n">{{环节 ①}}</div>
+        <div class="name">{{名称第一行}}<br>{{名称第二行}}</div>
+        <span class="own-badge o-agent">{{谁主导 · 谁配合}}</span>
+        <ul><li>{{要点}}</li><li>{{要点}}</li><li>{{要点}}</li></ul>
+        <div class="meter">
+          <div class="lbl"><span>{{度量名}}</span><span>{{85%}}</span></div>
+          <div class="bar"><i style="width:85%;background:#3E7F6E"></i></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">{{环节 ②}}</div>
+        <div class="name">{{名称}}</div>
+        <span class="own-badge o-agent">{{谁主导}}</span>
+        <ul><li>{{要点}}</li><li>{{要点}}</li><li>{{要点}}</li></ul>
+        <div class="meter">
+          <div class="lbl"><span>{{度量名}}</span><span>{{70%}}</span></div>
+          <div class="bar"><i style="width:70%;background:#3E7F6E"></i></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">{{环节 ③}}</div>
+        <div class="name">{{名称}}</div>
+        <span class="own-badge o-human">{{人 主导}}</span>
+        <ul><li>{{要点}}</li><li>{{要点}}</li><li>{{要点}}</li></ul>
+        <div class="meter">
+          <div class="lbl"><span>{{度量名}}</span><span>{{20%}}</span></div>
+          <div class="bar"><i style="width:20%;background:#B4472A"></i></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="n">{{环节 ④}}</div>
+        <div class="name">{{名称}}</div>
+        <span class="own-badge o-mix">{{执行 · 兜底}}</span>
+        <ul><li>{{要点}}</li><li>{{要点}}</li><li>{{要点}}</li></ul>
+        <div class="meter">
+          <div class="lbl"><span>{{度量名}}</span><span>{{60%}}</span></div>
+          <div class="bar"><i style="width:60%;background:#8A8B5C"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="backline">{{反常识结论}}<b>{{需要强调的那半句}}</b>{{然后给三件具体可执行的事}}<span class="k">{{关键词}}</span>…</div>
+  </div>
+
+  <!-- 模块三：分拣机 -->
+  <div class="sec">
+    <div class="sec-head">
+      <span class="sec-no">02</span>
+      <span class="sec-t">{{人的每一个动作，都要过一遍分拣机}}</span>
+      <span class="sec-note">{{这一栏为什么值得看}}</span>
+    </div>
+    <div class="mem-wrap">
+      <div class="quote">
+        <div class="qm">{{出处标签}}</div>
+        <div class="txt">{{真实原话，两行}}</div>
+        <div class="who">—— {{说话人角色}}<br>{{场景}}</div>
+      </div>
+      <div class="channels">
+        <div class="chan hard">
+          <div class="cn"><div class="t1">{{通道 A}}</div><div class="t2">{{判据<br>第二行}}</div></div>
+          <div class="arrow">→</div>
+          <div class="chipbox"><span class="chip">{{例}}</span><span class="chip">{{例}}</span><span class="chip">{{例}}</span><span class="chip">{{例}}</span></div>
+          <div class="out"><div class="ot">{{进哪个库}}</div><div class="od">{{进去之后 Agent 会怎么做}}</div></div>
+        </div>
+        <div class="chan soft">
+          <div class="cn"><div class="t1">{{通道 B}}</div><div class="t2">{{判据<br>第二行}}</div></div>
+          <div class="arrow">→</div>
+          <div class="chipbox"><span class="chip">{{例}}</span><span class="chip">{{例}}</span><span class="chip">{{例}}</span><span class="chip">{{例}}</span></div>
+          <div class="out"><div class="ot">{{进哪个库}}</div><div class="od">{{进去之后的边界}}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="mem-note">{{一句话说清两条通道的本质差别}}</div>
+  </div>
+
+  <!-- 模块四：风险 + 解药 -->
+  <div class="sec">
+    <div class="sec-head">
+      <span class="sec-no">03</span>
+      <span class="sec-t">{{只做 X，会养出什么问题}}</span>
+    </div>
+    <div class="risk">
+      <div class="risk-l">
+        <div class="rn">风险</div>
+        <h3>{{风险命名}}</h3>
+        <div class="chain">{{A → B →}}<br>{{C → <b>D</b> →}}<br>{{最终代价}}</div>
+      </div>
+      <div class="risk-r">
+        <div class="rn">解药 · 三条机制</div>
+        <h3>{{一句方向}}</h3>
+        <div class="cures">
+          <div class="cure"><div class="num">1</div><div><b>{{机制一}}</b>{{补充说明}}</div></div>
+          <div class="cure"><div class="num">2</div><div><b>{{机制二}}</b>{{补充说明}}</div></div>
+          <div class="cure"><div class="num">3</div><div><b>{{机制三}}</b>{{补充说明}}</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 模块五：结论条 -->
+  <div class="end">
+    <div class="kick">一句话结论</div>
+    <div class="big">
+      {{结论第一句，两个关键词上色}}<br>
+      {{结论第二句，把话说反差点}}
+    </div>
+    <div class="fin">{{两行解释：这套判据的适用范围，别只圈在这一次的场景里}}</div>
+  </div>
+
+  <div class="foot">
+    <span>{{日期}} &nbsp;·&nbsp; {{客户/项目名}}</span>
+    <span>{{副标题|来源}}</span>
+  </div>
+
+</div>
+</body>
+</html>
