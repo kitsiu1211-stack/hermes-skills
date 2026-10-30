@@ -48,8 +48,9 @@ END_CONFIRM=0
 
 # ---- 会议雷达（主动预警）2026-10-14 --------------------------------------
 # 零token规则 + 小模型增量扫描；发现冲突/异常/需求/我方失手 → 立即私聊推给用户。
-# RADAR_ENABLE=0 关闭；RADAR_CHAT 指定接收私聊；RADAR_LLM_EVERY=0 关闭模型层。
-if [ "${RADAR_ENABLE:-1}" != "0" ] && [ -f "$HOME/.hermes/skills/feishu/feishu-meeting-listen/scripts/meeting_radar.py" ]; then
+# ⚠️ 2026-10-26 起默认关闭（用户反馈噪音大、帮助有限）。需要时显式 RADAR_ENABLE=1 手动开。
+# RADAR_ENABLE=1 开启；RADAR_CHAT 指定接收私聊；RADAR_LLM_EVERY=0 关闭模型层。
+if [ "${RADAR_ENABLE:-0}" = "1" ] && [ -f "$HOME/.hermes/skills/feishu/feishu-meeting-listen/scripts/meeting_radar.py" ]; then
     RADAR_ARGS=("$MEETING_ID" --title "$MEETING_TITLE" --interval 15)
     [ -n "${RADAR_CHAT:-}" ] && RADAR_ARGS+=(--chat-id "$RADAR_CHAT")
     [ -n "${RADAR_LLM_EVERY:-}" ] && RADAR_ARGS+=(--llm-every "$RADAR_LLM_EVERY")
