@@ -1,7 +1,7 @@
 ---
 name: hermes-cron-troubleshooting
-description: "Use when a Hermes cron job fails, when patching/restarting a long-running background watcher or daemon (poll.sh, watcher .py, watchdog), or when the user says an alert/prewarning is vague or wrong (rule-alert false positive + legibility tuning): fallback chain, sentinel watchdog, restart-with-cursor-fast-forward, replay verification."
-version: 1.1.0
+description: "Use when a Hermes cron job fails, when patching/restarting a long-running background watcher or daemon (poll.sh, watcher .py, watchdog), when the user says an alert/prewarning is vague or wrong (rule-alert false positive + legibility tuning), or when the user says to turn a noisy feature OFF (帮助不大/噪音大/关闭掉 → decommission, not tuning): fallback chain, sentinel watchdog, restart-with-cursor-fast-forward, replay verification, five-step feature teardown."
+version: 1.3.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -19,6 +19,8 @@ Diagnose and fix failed scheduled jobs (cron). Trigger: user forwards a cron fai
 Also use this skill for **long-running background watcher / daemon lifecycle** — anything started detached and expected to keep running across the session (meeting `poll.sh`, `meeting_radar.py`, log tails, alerters, watchdogs). Trigger: "我改了那个脚本但它没生效", "预警里少了我刚才说的那件事", "重启一下那个监听", or any time you just edited the source of a process that is *already running*. See "长跑 watcher 改完代码后" below — the restart procedure is not optional.
 
 And use it for **rule-alert quality feedback** — the user replies to a pushed alert with "这个消息很模糊" / "看不懂" / "这算什么商机". That is a defect report on the rule layer (or on the alert's rendering), not a request for an explanation: fix the rule/format, replay-verify, restart. See "坑三" below and `references/rule-alert-tuning.md`.
+
+And use it for the **reverse** — the user says "关闭掉吧" / "帮助不大" / "噪音很大" / "别推了" about a running feature. That is a decommission, not a tuning request; do NOT answer it by offering to adjust thresholds. Five-step teardown (reverse the default, keep the code, sync the docs, sweep cron, name what did NOT change) in "反向操作：用户说「关掉它」" below and `references/feature-decommission.md`.
 
 ## Diagnosis workflow
 
@@ -61,6 +63,41 @@ Design rules (user-approved):
 - **Layer math**: execution + sentinel + fallback chain is enough. If both models AND the script fail simultaneously that's machine-level; accept it, don't over-engineer.
 
 Template: `templates/sentinel_watchdog.py` — copy to ~/.hermes/scripts/, set JOB_ID, install as no_agent cron with `script=<name>.py`. Verify the success-detection logic against real output files before trusting it.
+
+## Layer 4: 外部哨兵（观测点不在故障域内）— 跨机可观测
+
+Layer 3 的补跑哨兵和主任务跑在**同一台机**上：机器一睡，主任务和哨兵一起睡，**你连自己漏了什么都答不上来**。要让「有没有按时出现」这件事可被外部验证，就把每次周期产出压成**一行回执**，投到双方共见的话题里，由跑在云端、不依赖本机的另一个 Agent 当哨兵。
+
+要点（完整设计、四种前缀、上线顺序、坑，见 `references/external-sentinel-receipt.md`；可复用脚本 `scripts/cron_receipt.sh`）：
+
+- 只盯**没有本地补跑机制**的周期任务（周复盘 / 周深读 / 双周同步 / 双周雷达），日度任务已有 Layer 3 兜底，再盯纯噪音。
+- 回执 `✅ 任务名 期次` / `✅（补跑）` / `❌ 失败：原因` / `⏭ 非执行周`，任务名与期次是**对外契约**，改前先同步对方。**期次四类统一用 ISO 周 `YYYY-Www`（双周任务也一样），不用日期**——用日期会在双方文档里长出两套解析口径，说出去了只能逐条回收。
+- 交付给哨兵时同时给一份**「不盯」清单**（否则正常的沉默会被判成漏跑）和**真实弱点**（跑本机、睡即漏、历史失败如实点名）——这份清单长什么样见该 reference 第七节。
+- 判定时刻以哨兵侧 cron 为准，产出方清单只写计划时间 + 宽限，避免两套数字互相打脸。
+
+### 回执链路加固（2026-10-28 实战 — 上线前必做，否则首次实战静默失效）
+
+回执链路失效是**静默**的：发不出去时观察方看到的是"任务没跑"，你被判漏跑，而自己侧连报错都没留下。完整加固/自测流程见 `references/receipt-chain-hardening.md`，四条硬规则：
+
+1. **`selfcheck` 走旁支分支 ⇒ 它证明不了真实路径。** 本 session 的 `ok` 分支写成了 `${SUF:+（$SUF）}`，**全角括号被 bash 当成变量名的一部分**，`set -u` 下直接 `SUF）: unbound variable` 退出——而 selfcheck 走的是独立分支，测不到，首次实战必然发不出 `✅`。中文/全角标点永远不进参数展开内部，改成两次赋值：`SUFFIX=""; [ -n "$SUF" ] && SUFFIX="（${SUF}）"`。自检要覆盖**每一种回执形态**，不是跑通一条就算。
+2. **零噪音自测**：给 `lark-cli` 做假壳 + `HOME=/tmp/...`，四种形态逐条跑，群里一条假信号都不留（配方见该 reference 第二节）。
+3. **双周任务轮空周的 `⏭` 不能靠模型记得发**，用 `no_agent` cron 跑 `scripts/biweekly_skip_guard.sh`（周五 10:40 / 周一 09:40，晚于真任务、早于判定时刻）；偶数周静默、奇数周无回执则补发，已有回执退让。**`⏭` 必须带期次**（`⏭ 任务 2026-W45 本周非执行周`），没有周号观察方无法按周匹配。
+4. **可测日期逻辑要把 `date` 每一处输出都做成 override**（`%u` / `%V` / `%G` 各一个环境变量）。只覆盖周号不覆盖星期时，脚本在工作日直接 `exit 0`，看起来"静默正确"，实际一个用例都没验证到。
+
+跨 Agent 契约（期次格式、回执形态、判定时刻）要**读对方实现原文逐条核对**，别凭印象；改了契约字段（如给 `⏭` 加周号）要主动报备，并先讲清边界——脚本兜得住"模型漏发"，兜不住"整机睡死"。
+- **告警必须带人工兜底**：漏跑多半是机器睡着，那时产出方连「我在睡」都发不出、喊它没人应 → 告警写死「机器可能处于睡眠，请人工确认是否唤醒」。真兜底是用户本人，不是任何一方 Agent。
+- **改多个 job 的 prompt 别重打全文**：python 读 `~/.hermes/cron/jobs.json` → 拼「原 prompt + 附录」落 `/tmp/prompt_<id>.txt` → `hermes cron edit <id> --prompt "$(cat ...)"` → 回读 jobs.json 核实（`schedule` 是 dict 不是字符串，别按字符串处理）。可抄脚本见 reference 第五节。
+
+## Pattern: 兑现「明天 X 点我给你…」——一次性承诺任务（2026-10-29）
+
+在群里说出「明天 15:32 我出完整名单和状态，你来判」的那一刻，这个承诺就和会话生命周期绑定了：会话一关，没人会想起它，对方到点等不到东西，判定就变成扯皮。**口头时间承诺必须落成一次性 cron**，否则等于没承诺。
+
+- `schedule='YYYY-MM-DDTHH:MM:SS'` + `repeat=1`，`name` 里带日期和事项，方便事后在 `cronjob action='list'` 里认出来。
+- **`deliver` 要精确到话题**：`feishu:<chat_id>:<thread_id>`。只写 `feishu:<chat_id>` 会掉到群主聊天流，对方在自己的话题里看不到（本 skill 顶部「已确认正常工作的场景」也提到 cron 能在话题内交付）。
+- 群名 → chat_id 用 `lark-cli im +chat-search --query "<群名>"`（没有 `--keyword`）；话题 id 就是当前会话 `source` 里的 `omt_xxx`。
+- prompt 必须自包含：把**名单原文、判定口径、要读的数据源命令、台账路径、输出格式**全部写死。cron 里没有用户可问，含糊指令等于含糊产出。
+- 承接上面的重复交付问题：如果同一件事有两个实例在响应，截点任务可能在群里出两份。挂任务时顺手在台账里记一行「cron `<job_id>` 会在 X 点出状态」，事后能一眼分清哪条是计划内、哪条是另一个实例的抢跑。
+- 承诺里如果写了「你判定 / 我做别的」这类分工，**把分工写进 prompt**，否则 cron 会自作主张把结论一起下了。
 
 ## Pattern: two-job chain — 定时执行动作 + 定时产出交付物（NEW — 2026-09-17）
 
@@ -181,6 +218,54 @@ bash ~/.hermes/skills/devops/hermes-cron-troubleshooting/scripts/restart_statefu
 
 **三档验收顺序（缺一不可）**：① 回放全量，看命中的**全是真信号**、用户抱怨的那一条已消失；② 对该条**误报句**做单测确认不命中；③ 用几条**合成正反用例**确认收紧后真信号仍命中（收紧过头会把真信号一起灭掉，只跑回放发现不了）。
 
+### ⚠️ 坑四：用管道启动长跑 watcher，会被 `head` 静默掐死（2026-10-16 实测）
+
+启动 `poll.sh` / watcher 时最容易顺手写成 `bash poll.sh <id> <title> 2>&1 | head -30`（只想先看看前几十行日志）——**这会在 head 读满 30 行后退出的瞬间把 watcher 打成 SIGPIPE 死掉**。症状很隐蔽：进程「正常退出」、exit 0、没有任何报错，你以为它在监听，实际已经在几分钟后没了；配合 `notify_on_complete` 还会**立刻**收到一条「已完成」通知，看起来像会议结束了。
+
+**写法对照：**
+
+```bash
+# ❌ 管道会随 head 退出而掐死 writer（SIGPIPE），且 notify 会提前触发
+bash "$POLL" "$MID" "$TITLE" 2>&1 | head -30
+
+# ✅ 输出重定向到日志文件：进程被 harness 正常追踪、notify 在真实退出时才触发、日志可 tail
+bash "$POLL" "$MID" "$TITLE" > /tmp/poll_<mid>.log 2>&1
+# 用 terminal(background=true, notify_on_complete=true) 起，另起一条命令 tail 日志验收
+```
+
+**判据与修复**：`notify_on_complete` 在启动后几十秒内就到达 ⇒ 先怀疑是管道掐的，不是会议结束了。`ps aux | grep <脚本名>` 确认进程已死 → `pkill -f "<脚本名> <id>"` 清残 → 用重定向方式重启（状态是文件级的，重启不丢已采数据）。
+
+**与坑一的分工**：坑一是「cron 里必须 detach 且 harness 拒收 `nohup`/`&`」；本条是「**交互式会话**里用 `background=true` 起长跑进程时，别加管道」。两种场景的启动写法不同，别互相套用。
+
+**通用原则**：任何「预期长时间运行」的进程，输出一律落文件，**永远不要管道给可能提前退出的命令**（`head` / `head -n` / 带 `-m` 的 grep / 分页器）。要看实时进度就另起一条 `tail -f` 或 `tail -20`。
+
+## 反向操作：用户说「关掉它」——功能下线五步（NEW — 2026-10-26）
+
+场景：用户对已经跑起来的功能说「关闭掉吧，帮助不是很大，而且噪音很大」。这跟「调规则」是两条完全不同的路，**别默认走调参那条**。
+
+### 先分清用户要哪一种
+
+| 用户原话 | 真实诉求 | 动作 |
+|---|---|---|
+| 「这条预警很模糊 / 看不懂 / 误报太多」 | 功能有用，规则要修 | 走上面「长跑 watcher 改完代码后」+ `references/rule-alert-tuning.md` |
+| 「帮助不大 / 噪音很大 / 关掉吧 / 别推了」 | **价值判断已经做完**，功能本身不值得 | 直接下掉。不要反问「要不要我调一下阈值」，那是把已经做完的决定推回给用户 |
+
+判据：出现「帮助不大」这类**效用否定**，就不要再提调参。用户已经权衡过成本收益了。
+
+### 五步，缺一不可（只做第一步会「改了又起来」）
+
+1. **改默认值，不要删代码。** 把启动条件从 opt-out 改成 opt-in（`[ "${X:-1}" != "0" ]` → `[ "${X:-0}" = "1" ]`）。代码留着，将来手动开得起来，也留得下复盘材料；删了就再也开不回来。
+2. **改完立刻 `bash -n` 验语法**，再确认没有正在跑的实例：`ps aux | grep -E "<watcher>|<launcher>" | grep -v grep`。正在跑的实例不读磁盘上的新文件，它会继续按旧逻辑推送 —— 若在跑，先按「长跑 watcher」那套 kill + 冷启，或者直接 kill 掉（下线场景不需要冷启）。
+3. **同步 skill 文档**，写清「默认关闭 + 触发这次决定的原话 + 不要自作主张再开」。原有的调参技巧全部标注「仅作存档」。**新的 session 只读文档，文档不改就会被下一次写回来。**
+4. **扫一遍 cron**（`cronjob action='list'`），确认没有任何 job 会把它拉起来。改 launcher 只管手动/会话路径，cron 是另一条独立路径。
+5. **把流水线里「不跟着一起关」的部分点名告诉用户。** 只听功能名字很容易以为整条线都停了，用户会担心误伤。2026-10-26 实例：会议流水线有四个件，字幕采集 `poll.sh`（保留）、会中预警 `meeting_radar.py`（关掉）、会后纪要 cron「会议收尾哨兵」/`meeting_finisher.py`（保留）、bot 入会（保留）。交付时明确说哪条线没动，用户才敢信。
+
+### 关掉之后不要推销
+
+不开「要不我还是手动帮你跑一次」这种口子。用户要回来会自己说。反复提议复活已否掉的方案，在这个用户身上是明确的激怒点。
+
+完整案例（改动前后 diff、验收命令、会议流水线组件表）见 `references/feature-decommission.md`。
+
 规则型告警的误报治理（弱关键词需「伴随词」兜底、告警必须给出「命中词」、误报出现时怎么回答用户）见 `references/rule-alert-tuning.md`。
 
 ## Verify
@@ -245,6 +330,8 @@ export PYTHONIOENCODING=utf-8
 另外 `cut -c1-400` 在 C locale 下按**字节**截断，会把中文切碎成非法 UTF-8——换成字符级截断（`python3 -c '...decode("utf-8","replace")[:400]'`）。
 
 **验证**：`env -i ... bash script` 必须 exit 0 且 stdout 能被 `decode('utf-8')` 通过。
+
+**同族但不同源的一个坑（2026-10-28）**：全角标点写进**参数展开内部**（`${SUF:+（$SUF）}`）会被当成变量名的一部分，`set -u` 下报 `SUF）: unbound variable` —— 这条**不需要 cron 的缺失 locale，普通交互 shell 一样炸**。判据：报错里变量名后面拖着一个中文字符/全角标点 ⇒ 先看 `${…}` 内部有没有全角字符，别去查 locale。详见 `references/receipt-chain-hardening.md` 第一节。
 
 ### `sqlite3.OperationalError: disk I/O error` — state.db 间歇性故障（NEW — 2026-09-18）
 
