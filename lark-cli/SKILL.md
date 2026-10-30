@@ -92,7 +92,8 @@ CLI 没封装目标能力时（如批量撤回消息、群内撤回他人消息�
 
 2. **No MCP, no direct HTTP API.** All Feishu operations go through `lark-cli`. CLI is the integration path — smoother than MCP, no tool registration overhead, no auth drift.
 
-3. **`im:message.send_as_user` scope is NOT available.** ByteDance has not opened this scope. Do NOT attempt to request it — the authorization page will reject it. When sending messages as user fails, use bot identity or send a link for the user to forward.
+3. **`im:message.send_as_user`（以用户身份发消息）：CLI 侧不拦，授权页能否授予仍未验证（2026-10-28）。** `lark-cli auth login --scope "im:message.send_as_user" --no-wait --json` 会正常吐出 `device_code` + `verification_url`，**CLI 侧不会报错**，说明「发起这个 scope 的授权」本身可行；但历史上实测过授权页拒绝，成功与否**只能在用户完成授权后由 `--device-code` 那一步判定**。因此口径是：**可以发起、不许承诺**。对用户的话固定为「补授权后我就能以你的身份发；页面不给这个权限就走兜底」，兜底＝用户手点/转发，或 bot 身份发（bot 身份在服务台、值班号这类只认用户消息的机器人面前无效，见 pitfall 26）。
+    设备码 + 二维码的完整两段式流程（含 `--scope` 变体、`auth qrcode` 用法）见 `references/auth-flow-recipe.md`。
 
 4. **Use full binary path in background processes.** `PATH` may differ in background sessions; use `/Users/bytedance/.npm-global/bin/lark-cli`.
 
@@ -160,6 +161,13 @@ lark-cli calendar +update --as user --event-id "2178220f-…-_0" --summary "…"
 - `+update` 默认 `--notify` 给参会人发通知（只改自己的日程可忽略）
 - **身份别搞混**：`calendar` / `vc` / `docs` 这类域命令用 `--as user`；只有 `im +messages-send` 发消息用 `--as bot`。授权过期时 `--as user` 全线失败，先修身份再排业务（见 `hermes-feishu-gateway` skill）。
 
+**建完日程怎么确认（2026-10-16 实测，别再自己吓自己）：**
+
+1. **`+create` 的返回值就是权威凭据**——`{"ok": true, ...}` 即落盘成功。**不要**紧接着用 `+search-event --query "<刚建的标题原文>"` 去验证，很可能是 0 条结果。
+2. **`+search-event` 有两个实测特性**：① **索引有延迟**——刚建的事件立刻搜不到，过几分钟或换更宽的关键词才出现；② **返回条数似乎有上限**（`--page-size 30` 仍只回 10 条，同一查询早先回 17 条）。所以「搜不到」≠「没建成」。正确姿势：用**宽关键词**复核（如 `--query "跟进"` + 目标日期窗口，同时 grep 出多条 summary 一起看），或直接用 `+agenda --start <日> --end <日>` 按天点验。
+3. **`+agenda` 没有 `--date` 旗标**（传了报 `unknown flag "--date"`）；按天查用 `--start` / `--end`（`--end` 默认取 start 当天结束）。
+4. **`calendar +create --description @<file>` 接受绝对路径**（实测 `--description @/tmp/desc1.md` 一次通过）——**与 `docs +create --content @file` 必须相对路径（pitfall 11）相反**，别把两条规则互相套用。待办详情里带 emoji / 换行 / Markdown 时，一律写文件再 `@` 引用，不要内联。
+
 21. **确认「这场会到底是谁的会」——查日历，不要从字幕猜。** 会议标题只写主题（如「飞书 & PLM对接」）时，字幕里出现的公司名很可能是案例引用而非客户。可靠做法是拿当天日程反查：
 
 ```bash
@@ -181,3 +189,30 @@ lark-cli im +messages-send --chat-id <oc_…> --msg-type interactive --as bot \
 
 24. **「批量删除聊天信息」——飞书没有一键全删开关，四条路各管一段，答错就是对客户说错话。** 单条撤回＝`lark-cli im messages delete --message-id om_xxx`（**high-risk-write**：只有用户明确确认后才能加 `--yes`）；批量撤回接口（`DELETE /open-apis/im/v1/batch_messages/:bm-id`）**只能撤「批量发送消息」接口发出的消息**；客户端「多选 → 删除」只删自己视图、**删了不释放企业存储空间**；真正释放容量只有两条路——管理员后台清理 IM 文件、或发送者撤回原始消息。另两条高频约束：机器人撤他人消息必须自身是群主/管理员/创建者（群内消息 ≤1 年），撤回统一受管理员设置的撤回时限限制（超时报 `230009`）。
     完整边界表 + 接口参数 + 错误码 + **对客存储口径**（哪些算容、哪些不算、大文件走云文档链接）见 `references/im-message-recall-and-delete.md`——客户问「能不能批量删 / 删了能不能腾空间」时先读这一页，别凭印象答。
+
+25. **群内「提问」和「派活」一样，必须 @ 目标对象——不 @ 就等于问空气（2026-10-28 用户纠正）。** 用户原话：「这个问题你是对谁说的，每次你都得 at 对应的人或者智能体。」
+
+    不 @ 会同时触发两种失效：① **物理失效**——目标 bot 收不到（飞书只认 `<at user_id="ou_…">` 标签，纯文本 @ 不触发通知）；② **语义失效**——群里的人类和其他 bot 也看不出这句话在问谁，只能等用户来纠。
+
+    最容易犯的形态是**选项式/澄清式提问**：把「❓ A 还是 B？1. … 2. …」这类问题渲染成群消息，但它面向当前用户、**没有 @ 字段** → 一张无主卡片，人和 bot 都不敢接。真要问某个 bot，就别用卡片式提问，直接 `--msg-type text --text '<at user_id="ou_…">名</at> 问题'`；真要问用户本人，就 @ 用户的 open_id 或明写「这条问鑫杰」。
+
+    发出前自检一句：**如果对方只看到正文、没有上下文，他知道是在问他吗？** 不知道 → 补 @ 或改走私聊。发错了就一句认错 + 立刻重发带 @ 的版本，别逐条解释。
+
+    同一群常有**多个 thread 并存**（能力边界对齐在一个 thread，周复盘回执固定在另一个）。跨 thread 被问起时正文必须写明落点（「回执落在 X 话题下，根消息 om_…」），否则对方在自己 thread 里刷不到，会重复催。
+
+    相关的「这句话到底是在回谁 / 哪个群」定位命令、并行 session 撞车的排查，见 `references/chat-evidence-retrieval.md` 第 1.5 节。
+
+26. **交互卡片的按钮，任何 bot / API 都点不了——别答应「我帮你点那个按钮」。** 卡片按钮走的是发卡应用自己的卡片回调，飞书开放平台**没有「代用户触发卡片交互」的接口**（`im` 域也没有上报 action 的写接口）。实测（2026-10-28，飞书交易支持值班号）：另一个 bot 把卡片上同样的菜单文字 `🧾 发票处理` 直接发进会话，值班号**完全没响应、没建工单群**；而用户本人手打同一条文字十余次，每次都立刻建工单群。
+
+    **结论口径：卡片按钮 = 只认真人点击；文字等价物 = 只认用户身份发送。** 想「替用户点按钮」只有三条路：① 用户手点（然后把 bot 拉进它建出来的群/工单群）；② 以用户身份发等价文字（要 `im:message.send_as_user`，见 pitfall 3 的「可以发起、不许承诺」）；③ 在用户本人的飞书客户端里模拟点击（computer_use）——**截图返回 0×0、elements 为空时，通常是窗口最小化或屏幕锁屏，先 `list_windows` 确认，别据此断定驱动坏了**。
+
+    回答这类问题不要只说「做不到」就收尾：给出判定理由 + 上述三条路 + 立刻能执行的那一条（发起授权 / 让用户拉群）。细节与话术见 `references/helpdesk-menu-bot-cards.md`。
+
+27. **解析 lark-cli 的 JSON 输出前，先切到第一个 `{`。** stdout 里可能先冒一行警告（实测 `warning: reactions_partial_failed: 1 message(s) failed ([om_…])`），直接 `json.load(sys.stdin)` 会 `JSONDecodeError: Expecting value: line 1 column 1`——看着像命令挂了，其实数据完好。固定写法：
+
+    ```bash
+    lark-cli im +chat-messages-list --chat-id oc_xxx > /tmp/chat.raw 2>&1
+    python3 -c "import json;raw=open('/tmp/chat.raw').read();d=json.loads(raw[raw.find('{'):])"
+    ```
+
+    两个同源坑：① `+chat-messages-list --page-size` 上限 **50**（传 60 直接 `invalid --page-size 60: must be between 1 and 50`）；② 不传 `--order` 时返回是**新到旧**，要按时间线读就 `reversed(msgs)`。
