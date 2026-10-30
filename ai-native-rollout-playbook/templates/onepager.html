@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1240px; background:#F6F2EA; color:#1B1A17;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased; }
+  .page { padding:56px 60px 44px; position:relative; }
+  .page::before { content:""; position:absolute; inset:0;
+    background-image:radial-gradient(#D9D1C2 .7px, transparent .7px);
+    background-size:22px 22px; opacity:.35; pointer-events:none; }
+  .page > * { position:relative; }
+  .kicker { font-size:12.5px; letter-spacing:.22em; color:#8A8272; font-weight:600; }
+  h1 { font-size:50px; line-height:1.22; letter-spacing:-.6px; font-weight:800; margin-top:16px; max-width:1020px; }
+  h1 em { font-style:normal; color:#B4472A; }
+  .sub { margin-top:16px; font-size:16.5px; line-height:1.8; color:#4A453B; max-width:1060px; }
+  .sub b { color:#1B1A17; }
+  .rule { height:3px; width:96px; background:#1B1A17; margin-top:24px; }
+  .sec { margin-top:40px; }
+  .sec-head { display:flex; align-items:baseline; gap:14px; margin-bottom:18px; }
+  .sec-no { font-size:12px; font-weight:800; letter-spacing:.1em; color:#F6F2EA; background:#1B1A17; padding:3px 8px; border-radius:3px; }
+  .sec-t { font-size:22px; font-weight:800; }
+  .sec-note { font-size:13px; color:#8A8272; margin-left:auto; }
+  .judge { background:#1B1A17; border-radius:14px; padding:30px 34px 32px; color:#F3EEE2; }
+  .judge .kick { font-size:11.5px; letter-spacing:.24em; color:#9C937F; font-weight:700; }
+  .judge .q { font-size:29px; font-weight:700; margin-top:10px; }
+  .brs { display:flex; gap:16px; margin-top:24px; }
+  .br { flex:1; border-radius:10px; padding:18px 20px; }
+  .br.a { background:#22453E; border:1px solid #38655B; }
+  .br.h { background:#4A2418; border:1px solid #7A4530; }
+  .br .own { font-size:19px; font-weight:800; }
+  .br .d { font-size:13px; color:#C9C2B0; margin-top:7px; line-height:1.6; }
+  .flow { display:flex; gap:12px; }
+  .step { flex:1; background:#FFFDF8; border:1px solid #E3DACA; border-radius:11px; padding:18px 16px 16px; display:flex; flex-direction:column; }
+  .step .name { font-size:16.5px; font-weight:800; margin-top:7px; line-height:1.35; }
+  .step ul { list-style:none; margin-top:13px; }
+  .step li { font-size:12.5px; line-height:1.65; color:#4A453B; padding-left:11px; position:relative; }
+  .step li::before { content:""; position:absolute; left:0; top:8px; width:4px; height:4px; border-radius:50%; background:#B9AE96; }
+  .meter { margin-top:auto; padding-top:14px; }
+  .meter .lbl { display:flex; justify-content:space-between; font-size:10.5px; color:#8A8272; margin-bottom:5px; }
+  .bar { height:5px; border-radius:3px; background:#EAE2D2; overflow:hidden; }
+  .bar i { display:block; height:100%; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#FFFDF8; border:1px solid #E3DACA; border-radius:11px; overflow:hidden; }
+  th, td { text-align:left; padding:12px 15px; font-size:13px; line-height:1.6; }
+  thead th { font-size:11.5px; letter-spacing:.1em; color:#8A8272; font-weight:700; background:#F1EADB; }
+  tbody tr + tr td { border-top:1px solid #EFE7D8; }
+  .blank { display:inline-block; border-bottom:1.5px dashed #B4472A; width:74px; height:15px; }
+  .end { margin-top:36px; background:#1B1A17; border-radius:14px; padding:30px 34px; color:#F3EEE2; }
+  .end .big { font-size:22px; font-weight:800; line-height:1.6; margin-top:12px; }
+  .end .big em { font-style:normal; color:#7FBFA9; }
+  .foot { margin-top:24px; display:flex; justify-content:space-between; font-size:11.5px; color:#948C7B; letter-spacing:.05em; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="kicker">客户名 × 飞书 &nbsp;|&nbsp; 第 N 页 · 主题</div>
+  <h1>标题写成一个判断，<br>别写成<em>一个栏目名</em></h1>
+  <div class="sub">
+    副标题第一行讲<b>客户自己的失败经验</b>，第二行讲这个判断。<br>
+    不用术语，不堆形容词，让客户在十秒内认出这是他自己的事。
+  </div>
+  <div class="rule"></div>
+
+  <div class="sec">
+    <div class="judge">
+      <div class="kick">唯一判据</div>
+      <div class="q">这个产出，能被「是 / 否」判定吗？</div>
+      <div class="brs">
+        <div class="br a"><div class="own">Agent 承接</div><div class="d">有对错、可校验、可重跑，重做成本接近 0</div></div>
+        <div class="br h"><div class="own">人 承接</div><div class="d">没有唯一答案，只能被比较和选择</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">01</span><span class="sec-t">小节标题写结论</span><span class="sec-note">右侧可以放一句口径说明</span></div>
+    <div class="flow">
+      <div class="step">
+        <div class="name">环节 ①</div>
+        <ul><li>要点一，带数字</li><li>要点二，带原话</li></ul>
+        <div class="meter"><div class="lbl"><span>可判定</span><span>85%</span></div>
+          <div class="bar"><i style="width:85%;background:#3E7F6E"></i></div></div>
+      </div>
+      <div class="step">
+        <div class="name">环节 ②</div>
+        <ul><li>要点一</li><li>要点二</li></ul>
+        <div class="meter"><div class="lbl"><span>可判定</span><span>70%</span></div>
+          <div class="bar"><i style="width:70%;background:#3E7F6E"></i></div></div>
+      </div>
+      <div class="step">
+        <div class="name">环节 ③</div>
+        <ul><li>要点一</li><li>要点二</li></ul>
+        <div class="meter"><div class="lbl"><span>可判定</span><span>20%</span></div>
+          <div class="bar"><i style="width:20%;background:#B4472A"></i></div></div>
+      </div>
+      <div class="step">
+        <div class="name">环节 ④</div>
+        <ul><li>要点一</li><li>要点二</li></ul>
+        <div class="meter"><div class="lbl"><span>可判定</span><span>60%</span></div>
+          <div class="bar"><i style="width:60%;background:#8A8B5C"></i></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><span class="sec-no">02</span><span class="sec-t">需要老板点头的数字，基线留空</span></div>
+    <table>
+      <thead><tr><th>指标</th><th>基线（D1–D2 实测）</th><th>两周目标</th><th>通过线</th></tr></thead>
+      <tbody>
+        <tr><td>单份产出耗时</td><td><span class="blank"></span> 小时</td><td>≤ 基线的 1/3</td><td>≤ 基线的 1/2</td></tr>
+        <tr><td>参数 / 价格错误率</td><td><span class="blank"></span> %</td><td>≤ 人工基线</td><td>≤ 基线 × 1.2</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="end">
+    <div class="kick">一句话结论</div>
+    <div class="big">底部这句是客户会复述给别人的那句，只能有<em>一句</em>。</div>
+  </div>
+
+  <div class="foot"><span>2026.MM.DD &nbsp;·&nbsp; 客户名 × 飞书</span><span>FDE 前置咨询 · 页码语义</span></div>
+
+</div>
+</body>
+</html>
