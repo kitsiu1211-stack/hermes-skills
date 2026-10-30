@@ -35,6 +35,7 @@ version: 1.0.0
 3. **多会议并行**：第二个会需传 meeting_id：`python3.11 listen_subtitles.py <meeting_id>`
 4. **脚本自动处理**：不入会轮询 → 增量保存 → 会结束自动出纪要
 5. **无需 cronjob**——脚本内建 `meeting_still_active()` 双重验证（API超时不误判），`notify_on_complete=true` 通知 Agent
+6. **⚠️ 用户中途退会（会议未结束）**：`listen_subtitles.py` 用 `--as user` 轮询，用户退会后 API 报 120003「user is not in the meeting」且 `+meeting-list-active --as user` 查不到会议 → 脚本误判「会议结束」退出。**改用 bot 模式脚本** `listen_subtitles_bot.py`：先 `lark-cli vc +meeting-join --meeting-number <9位号> --as bot` 入会，再 `python3.11 listen_subtitles_bot.py <meeting_id>`。它用 `--as bot` 拉事件（用户离会不影响），用 `data.meeting.status == "ended"` 判断真正结束（连续2轮确认），`sentence_id` 去重（bot 拉全量历史不重复），并自动续写已有字幕文件不覆盖。
 
 ### 触发机制（用户偏好）
 
@@ -308,7 +309,8 @@ python3 ~/.hermes/skills/productivity/meeting-audit/scripts/poll.py <meeting_id>
 | 拉事件报 120003 `user is not in the meeting` | 用户已离会/会议已结束 | poll.py v1.0.1+ 已处理：返回 `meeting_ended: true`。**不要再手动调 `+meeting-events`**——poll.py 内部会优雅降级 |
 | 拉事件报无权限 | 用户不在会，或 UAT 过期 | `lark-cli auth login --no-wait --recommend --json` 重新授权 |
 | meeting_id 用错 | 用了 9 位会议号 | 用 `+meeting-list-active` 查到的长 ID |
-| 拿不到实时字幕 | 旁听模式无推送 | 正常，需轮询调 `+meeting-events` |
+| **拿不到实时字幕** | 旁听模式无推送 | 正常，需轮询调 `+meeting-events` |
+| **启动后立刻收到「进程已完成」通知，但字幕还在进** | `terminal(background=true)` 里命令结尾多写了 `&`，外层 shell 立即退出，只有 python 子进程还活着 | 用 `background=true` 时**不要写 `&`**；确认存活看 `ps aux \| grep listen_subtitles`，看进度看 `~/.hermes/meeting_transcripts/<meeting_id>.txt`（不是 `/tmp` 日志，stdout 有缓冲） |
 | 字幕提取为空 | 用了旧字段名 `transcript_items` | **已修正**：正确字段是 `transcript_received_items` |
 | `--as user` 报 unknown flag | lark-cli 版本过老 | `npm install -g @larksuite/cli@latest` |
 | `+meeting-leave` 报 121104 `meeting status unexpected` | 会议已结束（用户离开后会议自动终止） | 直接加入新会议即可，无需先离开旧会议 |
@@ -316,6 +318,7 @@ python3 ~/.hermes/skills/productivity/meeting-audit/scripts/poll.py <meeting_id>
 | **把案例当客户** | 从字幕内容推断客户名（如听到"拓竹"就以为客户是拓竹） | **铁律：客户名以会议标题为准，不从字幕内容推断。** 会议标题不写客户名就按标题出纪要，不要自作主张猜客户。案例引用 ≠ 客户身份 |
 | **ByteView 无音频流** | 会议未启用实时音频；或 Bot 入会后启动 Agent 太快 | 先 `sleep 3` 等 Bot 就绪再启动。5 秒内无 `raw msg` → 降级到字幕旁听+聊天框文字。个人通话（标题含「通话」）Bot 无法入会。 |
 | **API超时误判会议结束** | `+meeting-events` API调用超时返回空，脚本累加到4轮判结束 | **已修复**：listen_subtitles.py 新增 `meeting_still_active()` 双重验证——连续空返回后先调 `+meeting-list-active` 确认会议是否真的不在活跃列表。会议还在则继续轮询（日志：[API 静默 N 轮，会议仍在进行]），真正不在了才判结束。最多等 12 轮确保收尾字幕不丢 |
+| **用户退会误判会议结束** | 用户中途退出，但会议还在进行（其他人在）。`--as user` 拉事件报 120003 + `meeting-list-active --as user` 返回空 → listen_subtitles.py 误判「会议结束」 | **改用 bot 模式** `listen_subtitles_bot.py <meeting_id>`：先 `+meeting-join --as bot` 入会，用 `--as bot` 拉事件，`status=="ended"` 判结束，用户离会不影响。见执行步骤第6条 |
 
 ## Agent 入会语音对话（ByteView + 豆包实时语音）
 
@@ -577,7 +580,7 @@ Agent 给的材料往往是「大而全」的，但客户需求是具体的。Ag
 4. **代入计算器**：
    ```bash
    curl -s -X POST 'https://bytedance.aiforce.cloud/app/app_4k4ex0bzsderh/openapi/calculator/calculate' \
-     -H 'Authorization: Bearer OokzHETWqITNmSpEokF16moXN_eomkNlXp7iQLx1_Xs' \
+     -H 'Authorization: Bearer <your-token-here>' \
      -d '{"purchaseType":"addon","unitPrice":"<price>","quantity":<N>,"effectiveDate":"<today>","expiryDate":"<end>"}'
    ```
    - `addon` 公式：单价 × 席位 × (剩余天数/365)
