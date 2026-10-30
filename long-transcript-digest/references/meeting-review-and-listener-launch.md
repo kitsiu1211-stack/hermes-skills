@@ -59,11 +59,22 @@ JSONL 去重 + 按时间排序，然后打**说话人句数排行 + 每人时间
            background=True, notify_on_complete=True)
   ```
   （第三个参数 `bot` = 从一开始就用 `--as bot` 轮询，适合用户不在会、只让 Bot 挂机的场次）
-- **起来之后必须另起一次调用做就绪自检**，进程存活 ≠ 有字幕：
+- 🚨 **stdout 绝不能管到 `| head -N` / `| tail -N`（2026-10-16 踩到并当场改掉）**：`head` 读满 N 行就退出并关闭管道，长跑脚本下一次 write 即吃 **SIGPIPE 被杀**。表面上只是「少几行日志」，实际是旁听在会议进行到第 30 行输出时静默死亡，而你以为它还在采。**唯一正确形式是把 stdout 重定向到固定路径的日志文件**（这样工具会话只在脚本真正退出时才给 notify；落盘日志也让会中排查和事后复盘都不必回翻会话输出）：
   ```bash
-  sleep 25
-  wc -l ~/meeting_logs/<meeting_id>.jsonl; tail -2 ~/meeting_logs/<meeting_id>.jsonl
-  ps aux | grep -E "poll.sh <id>|meeting_radar" | grep -v grep
+  # ✅ 正确
+  terminal(command='cd ~ && bash ~/.hermes/skills/feishu/feishu-meeting-listen/scripts/poll.sh <long_meeting_id> "飞书信息管控" bot > /tmp/poll_<9位号>.log 2>&1',
+           background=True, notify_on_complete=True)
+  # ❌ bash .../poll.sh <id> "标题" bot | head -30    → head 退出后脚本被 SIGPIPE 杀掉
   ```
-  看到真实字幕句 + poll 与 radar 两个进程都在，才可以对用户说「已在采集中」。拿不到字幕就如实说，别让它静默空跑。
+- **起来之后必须另起一次调用做就绪自检（三连，缺一不可）**，进程存活 ≠ 有字幕：
+  ```bash
+  tail -20 /tmp/poll_<9位号>.log        # ① 应看到「=== 以 Bot 身份启动轮询」「=== 会议雷达已启动」
+  wc -l ~/meeting_logs/<meeting_id>.jsonl; tail -2 ~/meeting_logs/<meeting_id>.jsonl   # ② 有行数 + 两句真实字幕
+  ps aux | grep -E "poll\.sh <id>|meeting_radar" | grep -v grep                        # ③ poll 与 radar 两个进程都在
+  ```
+  三连全绿，才可以对用户说「已入会并开始旁听」。拿不到字幕就如实说，别让它静默空跑。
 - 只想要「Bot 在场但不说话」时：join 之后**不要**启动语音管线，没有管线就没有 TTS，天然静音。
+
+## 相关
+
+- 会后把「用户自己的待办」逐条落成飞书日历的完整口径（分类标准、`+create --description @文件`、工作日顺延、**`+search-event` 默认页大小截断会让人误判「有一条没建成」**、汇报模板、以及「顺手 `docs +search` 找到的内部文档发客户前必须先确认可发性」这条红线）见 `references/post-meeting-calendar-followups.md`。
