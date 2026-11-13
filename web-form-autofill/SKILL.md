@@ -35,6 +35,8 @@ metadata:
 - 端口只监听 IPv6 → `curl http://127.0.0.1:9222` 不通，用 `http://localhost:9222` 或 `http://[::1]:9222`。
 - websocket 握手报 `403 Forbidden ... rejected from origin` → 客户端加 `suppress_origin=True`，或启动参数加 `--remote-allow-origins=*`。
 - 用 `scripts/cdp_client.py`，不要再手写一遍。
+- **`/json/list` 里只剩 `service_worker`、找不到 `page`**（复用常驻调试 Chrome 时常见）→ 别重启 Chrome，新建标签页即可：
+  `urllib.request.Request("http://localhost:9222/json/new?" + urllib.parse.quote(url, safe=""), method="PUT")` —— 必须 `PUT`，`GET` 返回 405。
 
 ## 步骤 2：登录态
 
