@@ -109,6 +109,7 @@ requires:
 - `references/competitor-battlecard-doubao-work.md` — **豆包工作竞品战情卡**（WorkBuddy 三条迭代主线 / 千问办公多人工作台+鸿蒙信创 / 能力差异对照表 / 叙事铁律 / 客户侧实证）。⚠️ 竞品月更，用前确认是否过期。
 - `references/competitor-claude-tag.md` — **Claude Tag 竞品卡**（Anthropic 团队智能体：2026-06-23 发布 / Slack beta / 四机制 / 与豆包工作伙伴的范式对位 + 差异三列 + 「先承认范式一致，再讲集成深度与数据/合规」话术 / 海外闭源产品的无浏览器核实方法）。客户问「你们这个跟 Claude Tag 有什么不一样」时直接用。
 - `references/zero-coding-case-ammo.md` — **零技术背景也能搭：社区案例弹药**（贺馨·文科生接顺丰 API / Lucian·冶金专业靠飞书 CLI / MONA·妙搭 91 版），专治客户那句「我们没人会开发怎么办」；含活动形式样本（7 分钟倒计时 + 强制讲踩坑）。来源：2026-09-17 飞书 AI 绝活大会 LIVE #9 旁听。
+- `references/policy-center-dlp-scope.md` — **策略中心 / DLP 管控范围口径**（客户问「我只给待离职员工配了策略，为什么在职员工也被拦」。核心：选人是**按功能项各自独立**配的，消息侧选了待离职 ≠ 文档侧也生效；含「策略优先级 人员>用户组>组织架构>全局」、密级标签只对云文档空间生效的边界、以及靠**策略日志**反查命中规则的排查顺序）。来源：2026-11-10 客户策略中心配置沟通会 + 官方文档核实。
 - `references/feiyang-paid-service-selling.md` — **老客飞鹰（付费服务包）售卖打法**（客户画像 / 直男硬卖的弯路与三连问 / 只在续约增购节点引入 / 「坚决不降价 + 把服务入口从销售与 CSM 剥离」两个共识 / 绝不白送的归零链条 / 飞鹰 4.0 三个卖点 / 三个让客户产生体感的动作 / 试用挑人不全量）+ 配套的**续约风险救单四人配置**（销售+售前+CSM+高层、CSM 先服务复盘稳场、高层必须到 CIO 以上、底线价由后手出、续约节点帮对接人一把把预算要够）。来源：2026-10-12 服务大荟堂第 20 期王浩分享 + 同场 RM 周会旁听。
 
 ## C360 客户查询坑（lark-c360）
@@ -188,6 +189,16 @@ requires:
 - ✅ 换标尺：不谈总量，只谈「**您这条业务线真正要连的就那 2-3 个系统，我们把它做深、跑出结果**」。标尺一换成「你这条流程」，对方的数量优势自动失效。
 - ⚠️ **别把这条讲成「我们少也没关系」**——客户听到的是「你们少」。正确姿势是**承认 + 转移标尺**，不是辩解。
 
+### 🚨 第三条铁律（2026-11-10 实战验证）：不要正面比模型，要比「模型 × Harness」
+
+客户说「你这模型不行 / 我用 Codex、Claude Code 更好用 / 豆包工作感觉不如付费 Codex」时，**别接「我们模型也很强」**——那是把对话锁死在参数量上。
+
+- **口径：任务产出 = 模型分 × Harness 分。** 模型 10 分、harness 只有 1 分，最后出来的东西就是 11 分。Codex 表现好，很大程度是因为它的 harness 是围绕自家模型调的，**不是单纯模型更强**。同一件事做得好不好，一看模型，二看 agent 的 harness 有没有做好。
+- **转标尺：分层用工具。** 20% 产研给 Codex / Claude Code 完全没问题（字节自己也在用），剩下 80% 非产研用长在飞书上的通用 Agent。**让全员用顶级模型＝杀鸡用牛刀**：他每天只是写个文档，烧几块几十块，图什么。真正的问题不是「谁的模型强」，而是「你这 100% 的人都用上 AI 了吗」。
+- **合规补充**（客户说「国模不安全，会拿我们的数据去训练」时）：国内模型商业化受政策约束，不允许拿客户数据训练；真出问题，至少能找到主体、有属地救济。Claude Code / Codex 部署在海外、无国内备案，出问题找谁追责？**先承认对方顾虑，再给这条，不要怼客户。**
+- ❌ 「崇洋媚外」这类话**只存在于内部私聊语境，绝不进对客话术**。
+- ✅ 客户的正确后续动作：别说「不好用」，要能说出**哪里不好用**——prompt 怎么写、有没有用 skill、reference 指向哪份脏数据。AI 时代有链路可追，不像人犯错找不到根因。
+
 ### 开场定调的一句话（把对话从对比环节拉进场景环节）
 
 > 「我们不比单点快不快、也不比能连多少个，我们比的是——**您这条业务从发现到闭环，能不能在豆包工作上跑完一遍。**」
@@ -236,10 +247,11 @@ lark-cli docs +search --query "豆包" --as user --page-size 10 | \
 import json,sys
 d=json.load(sys.stdin)
 for r in d.get('data',{}).get('results',[]):  # ← results, 不是 items
-    meta=r.get('result_meta',{})
-    print(meta.get('title_highlighted','?'))
-    print(meta.get('url','?'))
-    print(r.get('summary_highlighted','')[:120])
+    # ⚠️ title_highlighted / summary_highlighted 是 results 每一项的【顶层键】，
+    #    不是 result_meta 的子键。写 .result_meta.title_highlighted 会整列 null。
+    print((r.get('title_highlighted') or '?').replace('<h>','').replace('</h>',''))
+    print(r.get('result_meta',{}).get('url','?'))
+    print((r.get('summary_highlighted') or '')[:120])
 "
 ```
 
@@ -247,9 +259,10 @@ for r in d.get('data',{}).get('results',[]):  # ← results, 不是 items
 - `data.results[]` — 搜索结果列表
 - `result_meta.url` — 文档链接
 - `result_meta.token` — doc token，可直接用于 `docs +fetch`
-- `result_meta.title_highlighted` — 高亮标题
-- `summary_highlighted` — 高亮摘要
 - `result_meta.entity_type` — "DOC" 或 "WIKI"
+- `title_highlighted` — 高亮标题（**results 项的顶层键，不在 `result_meta` 里**；实测写 `.result_meta.title_highlighted` 整列 null）
+- `summary_highlighted` — 高亮摘要（同样在顶层）
+- ⚠️ 关键词只命中正文、没命中标题时，`title_highlighted` **整键缺失** → 用 `summary_highlighted` 判断内容对味，再 `docs +fetch` 拉原文确认；不要据此断定文档不存在
 
 ### lark-cli minutes +search 搜妙记（竞品/赢单情报的富矿）
 
