@@ -6,6 +6,17 @@ category: feishu
 
 # AI 赢单商机雷达（AI Win Opportunity Radar）
 
+> ⛔ **本任务已于 2026-11-09 由用户终结，cron 已删除（755f8ece681d + 轮空兜底 8eb5af097a8a）。**
+> 原因：C360 CLI 的 Agent 白名单不含 Hermes（全线 code=100001），重新授权也无效，数据面拿不到。
+> **除非用户明确说「重启商机雷达」，否则不要跑本 skill、不要重建 cron、不要找业务方点授权链接。**
+> 重启前提：C360 白名单加进 Hermes，或用户提供本人终端导出的数据文件。
+>
+> **重启留档（2026-11-09 与马斯克对账后补）**
+> - 两台机死因不同，别混：Hermes 台 = code 100001 白名单硬拦（重授权无效）；Aily 沙箱台（马斯克）= 会话过期（logged_in=false，expires_at 2026-09-16），本机 `auth login` 即可恢复。所以「授权链接走不通」只对 Hermes 成立。
+> - lark-c360 版本：Hermes 台已是 **1.2.14**（5063c1c，达标）；Aily 台为 1.2.8，低于脚本包要求的 1.2.14，重启前只需升那一台。
+> - 脚本包三个落点（马斯克已解包核对）：`C360_BIN` 可覆盖 / `BASELINE_PATH=~/.hermes/radar_baseline.json` / `send_radar_card` 走 `RADAR_HOME_CHAT`。
+> - 两条重启路径都需用户点头：给 Hermes 加白名单，或把雷达搬到 Aily 上跑。
+
 基于主题34「AI赢单策略」（五人赢单蒸馏沉淀：AI 第一负责人 / 场景用量 / 组织推动力三大洞察）的升级信号清单 + C360 CLI 真实租户数据，每周自动识别用户名下客户的 AI 商机机会，无幻觉约束输出。
 
 ## 🚨 核心纪律（无幻觉铁律）
@@ -182,7 +193,9 @@ python3 fetch_followups.py                   # 每周增量：近14天 → /tmp/
 
 **脱敏选项**：内部用保留客户名；对外分享用「某+行业+企业」。
 
-## 定时任务（cron）——每双周周一早上 9:00 自动跑（job: 755f8ece681d）
+## 定时任务（cron）——⛔ 已于 2026-11-09 删除（原 job: 755f8ece681d，每双周周一 9:00）
+
+> 以下内容为历史记录，cron 已不存在；仅在用户明确要求重启时才按此重建。
 
 - cron schedule: `0 9 * * 1`（每周一触发，prompt 内判断 ISO 周号，**偶数周执行、奇数周静默跳过**）
 - 发送节奏（2026-08-27 用户定调）：14 天增量窗口 → 双周发一次。实测：8/31=周36发 → 9/7=周37跳过 → 9/14=周38发
@@ -219,3 +232,11 @@ python3 send_radar_card.py     # 5. 组装V3.1卡片发 Home
 8. **Evaluator 是校验器不是生成器**：只删不改，发现异常打回 Generator 重跑该客户
 9. **阈值可调**：信号清单阈值写在脚本常量区，方便根据实际命中率调整
 10. **account_id 禁止手动转写**（2026-08-27 实测翻车）：手敲 `0010o00002tr5GYAY` 漏了一个字符（正确 `0010o00002tr5GYAAY`），导致凯迪仕 3 条 AI 跟进被漏查、误判"无跟进"。脚本（fetch_followups.py）直接读 radar_result.json 的 `account_id` 字段，天然免疫——任何手动转写客户 ID 的环节都是 bug 源头
+11b. **100001 ≠ 过期（2026-11-09 两次踩坑并定位）**：`radar_full.py` 报 `code=100001 当前请求因安全检测未通过被拦截`，根因是 **C360 CLI 的 Agent 白名单**——官方文档（https://bytedance.larkoffice.com/wiki/MB1nwOTxii9oXekeqW0cxWCKnhb ）只允许 Claude Code/Co-work、Codex（本地，字节办公设备）、Aily 系列、豆包(字节租户)，**Hermes 不在列**。
+    - **2026-11-09 二次确认**：`auth status` = Logged in、expires_at=2026-12-09（30 天有效）**同时** 所有实体全线 100001（实测 contact list / tenant list / account list / opportunity count 全拦，事件 id 见 `lark-c360 doctor report --last-error`）。**重新授权无效**——别再让业务方点授权链接，那会白等一个周期。
+    - **白名单兜底也挂了（同日实测）**：本机 Claude Code 2.1.144 → `claude-opus-4-7`/`claude-sonnet-4-6` 均报模型无权；Codex 0.167.0 → `401 Invalid token @ it-ai.fineres.com/v1`（两条都走 fineres 网关，token 失效）。"交给同机 Claude Code/Codex 跑"这条兜底目前**不可用**，先确认这两个客户端能跑通再承诺。
+    - **脚本护栏（已改）**：`radar_full.py` 在 auth 之后追加真探针（`account list --limit 1`），命中 100001 直接 `exit 4` 并打印 expires_at，杜绝"静默 0 客户"；C360 可执行路径统一走 `C360_BIN` 环境变量（`radar.py`/`fetch_followups.py`/`radar_full.py` 三处）。
+    - 处置：向 **C360-CLI 反馈服务群 `oc_8923c465784a008c5f09a4cb1df00dea`**（352 人，用户本人已在群）申请加白，附 `lark-c360 doctor report --last-error` 返回的 report_id；或由用户**本人在自己终端**跑一次 `lark-c360 account list --limit 1 --json` 验证是否只拦 Agent 进程。两条都不通时如实报「环境受限未执行」，**不要用本地会议记录拼一份假雷达**。
+    - 告警之前先分清三种失败：`session expired`（授权，人工点一次）／`100001`（白名单，需申请）／网关超时（重试）。区分办法：`auth status` 说 logged_in=true 就**不是**过期。
+
+11. **C360 会话约 28 天硬过期，无 refresh token**（2026-10-26 / 2026-11-09 连续两次踩坑）：`session_token` 到期后 CLI 无法自动续期，所有命令返回 `session expired for online`，cron 无人在场无法完成 OAuth。表现为**「名下 AI 客户数: 0」**——脚本曾把认证失败静默吞成空结果。已修：`radar_full.py` 开跑先 `preflight_auth()`，未登录直接 `exit 2` 并打印过期时间；`fetch_followups.py` 无信号客户时 `exit 3`。cron 遇 exit 2 应发 fail 回执并提示人工执行 `lark-c360 auth login`（浏览器点一次授权，约 20 秒），授权后可直接补跑，基线档案不受影响。**建议每 3-4 周主动 `lark-c360 auth status` 巡检一次**

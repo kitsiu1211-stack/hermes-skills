@@ -27,11 +27,14 @@ AI 赢单商机雷达 — 跟进记录扫描器（V3.1：基线建档一次，�
 """
 import json
 import subprocess
+import shutil
 import os
 import sys
 import datetime
 
-C360 = os.path.expanduser("~/.npm-global/bin/lark-c360")
+C360 = (os.environ.get("C360_BIN")
+        or shutil.which("lark-c360")
+        or os.path.expanduser("~/.npm-global/bin/lark-c360"))
 BASELINE_PATH = os.path.expanduser("~/.hermes/radar_baseline.json")
 
 # AI 相关关键词（命中即视为 AI 跟进）
@@ -141,6 +144,10 @@ def main():
         result = json.load(f)
     findings = result.get("findings", [])
     print(f"信号客户数: {len(findings)}")
+    if not findings:
+        print("⚠️ radar_result.json 无信号客户（或上游扫描失败），本次不产出跟进摘要。",
+              file=sys.stderr)
+        sys.exit(3)
 
     baseline_store = load_baseline() if not baseline else {}
     out = {}

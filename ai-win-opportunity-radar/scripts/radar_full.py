@@ -7,9 +7,16 @@ AI 赢单商机雷达 — 全流程（枚举 AI 客户 → 拉数据 → Generat
 """
 import json
 import subprocess
+import shutil
 import sys
 import os
+import re
 import datetime
+
+# C360 可执行文件：优先 C360_BIN（跨环境适配），否则 PATH，最后兜底本机 npm 路径
+C360 = (os.environ.get("C360_BIN")
+        or shutil.which("lark-c360")
+        or os.path.expanduser("~/.npm-global/bin/lark-c360"))
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import importlib.util
@@ -22,6 +29,46 @@ MY_OWNER = "袁鑫杰"
 MY_OWNER_ID = os.environ.get("C360_OWNER_ID", "005BB000000Hg80YAC")
 AI_PREFIX = ("feishu_ai_", "ai_", "aily", "nexus_bot", "vc_ai", "meego_ai", "base_ai", "miaoda", "openclaw")
 
+def _err_code(blob):
+    m = re.search(r"code=(\d+)", blob or "")
+    return m.group(1) if m else None
+
+def preflight_auth():
+    """开跑前校验 C360 会话 + 网关；区分「过期需授权」和「100001 白名单拦截」，
+    两者都必须硬失败，否则会被当成「0 个客户」静默吞掉。"""
+    r = subprocess.run([C360, "auth", "status", "--json"],
+                       capture_output=True, text=True, timeout=30)
+    try:
+        d = json.loads(r.stdout[r.stdout.find('{'):])
+    except json.JSONDecodeError:
+        print("❌ 无法解析 lark-c360 auth status 输出，请先执行 lark-c360 auth login", file=sys.stderr)
+        sys.exit(2)
+    if not d.get("logged_in"):
+        exp = d.get("expires_at")
+        exp_s = datetime.datetime.fromtimestamp(exp).strftime("%Y-%m-%d %H:%M") if isinstance(exp, int) else "未知"
+        print(f"❌ C360 会话不可用（logged_in=false，expires_at={exp_s}）。"
+              f"请人工执行 lark-c360 auth login 后重跑。", file=sys.stderr)
+        sys.exit(2)
+
+    # 真实探针：auth status 显示有效 ≠ 能取数（2026-11-09 二次踩坑）
+    probe = subprocess.run([C360, "account", "list", "--limit", "1", "--json"],
+                           capture_output=True, text=True, timeout=30)
+    blob = (probe.stdout or "") + (probe.stderr or "")
+    code = _err_code(blob)
+    if code == "100001":
+        _exp = d.get("expires_at")
+        _exp_s = datetime.datetime.fromtimestamp(_exp).strftime("%Y-%m-%d %H:%M") if isinstance(_exp, (int, float)) else str(_exp)
+        print("❌ C360 网关拦截 code=100001（安全检测 / Agent 白名单）。"
+              "auth status 有效（expires_at=%s）也没用——重新授权无效。"
+              "处置：向 C360-CLI 反馈群申请加白，或改用官方允许的客户端执行；"
+              "不得伪造结果。" % _exp_s, file=sys.stderr)
+        sys.exit(4)
+    if "session expired" in blob.lower():
+        print("❌ C360 会话已过期（session expired），需人工 lark-c360 auth login 后重跑。", file=sys.stderr)
+        sys.exit(2)
+    if not blob.strip():
+        print("⚠️ C360 探针无输出，继续尝试主流程", file=sys.stderr)
+
 def list_ai_accounts(limit_page=100):
     """枚举名下含 AI 产品的客户：
     1. opportunity 拉候选（owner_id == 我 且 含 AI 产品）
@@ -31,7 +78,7 @@ def list_ai_accounts(limit_page=100):
     offset = 0
     while True:
         r = subprocess.run(
-            ["lark-c360", "opportunity", "list",
+            [C360, "opportunity", "list",
              "--field", "id", "--field", "account_name", "--field", "account_id",
              "--field", "owner_id", "--field", "service_tenant_id", "--field", "stage",
              "--field", "product_sku_keys",
@@ -43,6 +90,10 @@ def list_ai_accounts(limit_page=100):
         except json.JSONDecodeError:
             break
         if not d.get("ok"):
+            msg = (d.get("error") or {}).get("message", "unknown")
+            if offset == 0:
+                raise RuntimeError(f"opportunity list 失败（首页即报错）: {msg}")
+            print(f"⚠️ opportunity list 分页在第 {offset} 条中断: {msg}", file=sys.stderr)
             break
         lst = d.get("data", {}).get("list", [])
         if not lst:
@@ -94,7 +145,7 @@ def list_ai_accounts(limit_page=100):
 def verify_owner(account_id):
     """查 account 当前 owner，返回 {owner, owner_val, name} 或 None"""
     r = subprocess.run(
-        ["lark-c360", "account", "get", "--id", account_id,
+        [C360, "account", "get", "--id", account_id,
          "--field", "id", "--field", "name", "--field", "owner_id", "--json"],
         capture_output=True, text=True, timeout=30,
     )
@@ -117,6 +168,7 @@ def main():
         limit = int(sys.argv[sys.argv.index("--limit") + 1])
 
     print("=== AI 赢单商机雷达 ===", datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+    preflight_auth()
     accounts = list_ai_accounts()
     print(f"名下 AI 客户数: {len(accounts)}")
     if limit:

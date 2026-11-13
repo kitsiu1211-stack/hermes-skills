@@ -14,7 +14,8 @@ import sys
 import datetime
 
 # ── 配置 ──
-LARK_C360 = "lark-c360"
+import os as _os
+LARK_C360 = _os.environ.get("C360_BIN") or "lark-c360"
 C360_ENV = "online"
 
 # 关键字段（tenant_metrics）
