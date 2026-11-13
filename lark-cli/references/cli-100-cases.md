@@ -13,6 +13,21 @@
 | 5 | `lark-cli vc +meeting-events --as user --meeting-id <id> --page-token <token>` | 分页拉 |
 | 6-14 | 事件解析: participant_joined / transcript_received / chat_received / participant_left / leave_reason | 字幕+聊天+进出 |
 
+### vc 域三条易混约束（2026-11-10 实测补）
+
+| 约束 | 说明 |
+|------|------|
+| **两个 121005** | 入会 121005 = 智能体入会开关没开；实时音频端点 121005 = 该会议没给应用开 ByteView 实时语音通道 |
+| **身份必须一致** | `+meeting-join --as bot` 拿的 meeting_id 全程用 `--as bot`；`+meeting-list-active --as user` 拿的全程用 `--as user` |
+| **`--text` 不是 `--content`** | `+meeting-message-send` 的文本旗标是 `--text`（`im +messages-send` 才用 `--content`） |
+
+### 会中弹幕监听（语音不可用时的降级路径）
+
+```bash
+# 现成脚本（本 skill 内）：轮询 chat_received，按 wake word 标记
+python3 ~/.hermes/skills/productivity/lark-cli/scripts/meeting_chat_watch.py <meeting_id>
+```
+
 ## 二、im — 消息群聊（22 例）
 
 | # | 命令 | 用途 |

@@ -198,6 +198,12 @@ lark-cli im +messages-send --chat-id <oc_…> --msg-type interactive --as bot \
 
     发出前自检一句：**如果对方只看到正文、没有上下文，他知道是在问他吗？** 不知道 → 补 @ 或改走私聊。发错了就一句认错 + 立刻重发带 @ 的版本，别逐条解释。
 
+    **程序化闸（2026-11-06 起，别再靠记性）**：发送前把正文喂给
+    ```bash
+    python3 ~/.hermes/scripts/check_at_tags.py --file /tmp/msg.txt   # rc=0 才发
+    ```
+    它拦三类：① 有提问/派活语义却没有任何 `<at user_id="ou_...">`；② `<at>` 用了**全角引号**（`“ou_…”` 飞书不解析、静默降级成纯文本，2026-11-06 实测复发）；③ `user_id` 不是 `ou_` 开头。三次同源事故（忘 @ / @ 错人 / 全角引号）都在这三条里。
+
     同一群常有**多个 thread 并存**（能力边界对齐在一个 thread，周复盘回执固定在另一个）。跨 thread 被问起时正文必须写明落点（「回执落在 X 话题下，根消息 om_…」），否则对方在自己 thread 里刷不到，会重复催。
 
     相关的「这句话到底是在回谁 / 哪个群」定位命令、并行 session 撞车的排查，见 `references/chat-evidence-retrieval.md` 第 1.5 节。
@@ -216,3 +222,52 @@ lark-cli im +messages-send --chat-id <oc_…> --msg-type interactive --as bot \
     ```
 
     两个同源坑：① `+chat-messages-list --page-size` 上限 **50**（传 60 直接 `invalid --page-size 60: must be between 1 and 50`）；② 不传 `--order` 时返回是**新到旧**，要按时间线读就 `reversed(msgs)`。
+
+28. **`vc` 域有两个不同的 121005，别混：** ① **入会 121005**（`+meeting-join` 报 `"user lacks permission for the requested resource"`）= 会议 owner 没开「允许智能体加入会议」；② **实时音频端点 121005**（`lark-cli api GET /open-apis/vc/v1/realtime/endpoint` 报 `"bot lacks permission for the requested resource"`）= 该会议**没给应用开 ByteView 实时语音通道**。实测（2026-11-10）Bot 入会完全成功（`+meeting-join` 返回 `ok: true` + `data.meeting.id`），紧接着取 ByteView WebSocket URL 才被拒——**此时语音管线一步都没跑起来**，不是「启动后无声」。区分要点：看报错发生在哪个 API 调用的 stderr 里。
+
+    **处置：endpoint 121005 不要重试**（同一场会议重试必再报，服务端能力不是脚本 bug），立刻降级到**字幕旁听 + 会中聊天框文字回复**：
+    ```bash
+    # ① 字幕旁听（bot 已在会中，用 --as bot 拉事件，用户离会不影响）
+    cd ~/Documents/Codex_Project/feishu-voice-agent-starter && python3.11 listen_subtitles_bot.py <meeting_id>
+    # ② 会中文字回复
+    lark-cli vc +meeting-message-send --as bot --meeting-id <meeting_id> --text "..."
+    ```
+    ⚠️ `+meeting-message-send` 的文本旗标是 `--text`（不是 `--content`），发出去的是**会中聊天框**，不是群消息。
+
+29. **`vc +meeting-events --as bot` 的 `status` 字段是判断会议真结束的权威信号。** 返回体 `data.meeting.status`：`ongoing` → 还在开；`ended` → 真结束。注意 `data.meeting` 只在部分调用里出现，`events` 数组本身不含状态字段。派生的两个用法：① 会议结束时 `data.events[]` 里会出现 `participant_left` 且 `leave_reason == 2`（2=会议结束，1=主动离会，3=被踢出）；② 拿 `meeting_id` 给 `+meeting-events` / `+meeting-message-send` 时，**身份必须一致**——`+meeting-join --as bot` 拿到的 id 就全程用 `--as bot`，`+meeting-list-active --as user` 拿到的 id 就全程用 `--as user`，别中途换。
+
+30. **`+meeting-events` 返回的 `chat_received` 事件里混着 `Typing` 这类系统占位消息。** `payload.chat_received_items[].content` 会大量出现字面量 `Typing`（打字中占位），以及 `message_type != 1` 的非文本项。做「读会中弹幕」时按 `message_type == 1` **且** content 不是 `Typing` 过滤，否则会把几十条噪音当成有人在说话。同一个 meeting 里也可能有别的智能体在发言（豆包数字员工、用户自己的其它 bot），它们的消息同样进 `chat_received`——**先看 `operator.user_name` 区分发言主体**，别把别的 bot 的话当成用户说的。
+
+    现成脚本：`scripts/meeting_chat_watch.py`（本 skill 内）——轮询 `--as bot` 的会中事件，把新 `chat_received` 逐条打成 JSON 行（`{"sender","content","wake"}`），按 `event_id` 去重（状态文件在 `~/.hermes/meeting_chat_state/<meeting_id>.json`），会议 `status != ongoing` 时自动退出。专门服务于 pitfall 28 的降级路径（语音端点被拒时改用弹幕文字应答）。
+
+31. **端点 121005 之外还有第二种语音失败：endpoint 明明通了，26 秒后 `[bv] session closed reason=1`，而且 Bot 被连带踢出会议。** 实测 2026-11-10 会议 104318338：`GET /open-apis/vc/v1/realtime/endpoint` **正常返回 `websocket_url`**，`[bv] raw msg` 也有音频流量，但豆包 ASR 一直是空文本——
+
+    ```
+    [doubao] asr text text=            ← 空
+    ... origin_text":"现在就是说"      ← 内容其实在这个字段里
+    [bv] session closed reason=1
+    ```
+
+    **判据：`asr text` 为空就说明这条语音链路不可用，不要因为「端点通了」就以为能开麦。** 连带后果是 `main.py` 的 `forward_doubao_to_byteview` 读的正是那个空字段 → **wake_word 检测永远不触发，被点名也开不了麦**。
+
+    **更麻烦的副作用：ByteView 会话一断，bot 会从会议里消失。** 症状是 `vc +meeting-list-active --as user` 仍显示会议 `ongoing`，但 `--as bot --user-id <本人open_id>` 返回空数组，`+meeting-events --as bot` 返回 0 事件——很容易误判成「会议结束了」。
+
+    处置顺序（照抄，别自己发挥）：
+    ```bash
+    # ① kill 掉 main.py 语音管线，别再起
+    # ② 重新入会恢复 bot 在场
+    lark-cli vc +meeting-join --as bot --meeting-number <9位号>
+    # ③ 重启字幕旁听（会从已有行数继续追加，不覆盖）
+    cd ~/Documents/Codex_Project/feishu-voice-agent-starter && exec python3.11 listen_subtitles_bot.py <meeting_id>
+    ```
+    验证恢复：`--as bot` 的 `+meeting-list-active` 能列出这场会议，且 `+meeting-events` 的 `data.meeting.status == "ongoing"`。
+
+32. **`listen_subtitles_bot.py` 报 `bash: [N: 1] tcsetattr: Inappropriate ioctl for device` 后静默退出，是后台 shell 包装器 / tty 丢失导致的，不是脚本 bug。** 已抓字幕不会丢。重启时给 python 加 `exec` 前缀让它直接接管进程，就不会再被外层 shell 的 tty 问题带走：
+
+    ```bash
+    cd ~/Documents/Codex_Project/feishu-voice-agent-starter && exec python3.11 listen_subtitles_bot.py <meeting_id>
+    ```
+
+    重启日志会打印「已有 N 条字幕，继续监听」，说明是续写。**别用 `terminal(background=true)` 后再手动 kill 同会话里的其它进程**（例如为了切语音管线去 kill `main.py`），这容易打断共享的 shell 包装器，连带把字幕监听一起带走——语音管线和字幕监听要分开两次独立启动。
+
+33. **字段路径 / 参数单复数 / 大输出超时的集中清单见 `references/cli-field-and-timeout-quirks.md`。** 涵盖：`docs +fetch` 正文在 `data.document.content`（取 `data.content` 会静默拿到空串、误判成没权限）、`vc +detail --meeting-ids` 与 `minutes +detail --minute-tokens` 的**复数参数名**、`im chats get`（不是 `im chat get`）、`im +messages-list` 不存在该用裸 `api GET /open-apis/im/v1/messages`、`im +messages-search` 需独立 scope `search:message`、`calendar +agenda` 的 `data` 有时直接是 list、以及「**大输出命令先 `> /tmp/x.json` 落盘、再用独立 .py 解析**」这条能省掉大量超时重跑的习惯。
