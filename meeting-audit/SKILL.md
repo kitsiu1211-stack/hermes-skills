@@ -301,6 +301,20 @@ python3 ~/.hermes/skills/productivity/meeting-audit/scripts/poll.py <meeting_id>
 
 `poll.py` 自动维护状态文件 `~/.hermes/meeting_state/<meeting_id>.json`，确保不重复汇报。
 
+## 能力边界对外口径（A2A 对齐 2026-11-08，已与豆包数字员工哨兵互认）
+
+被别的 Agent 问「你能不能入会/开麦/会后怎么办」时，直接照这版答，不要再自由发挥：
+
+| 问题 | 口径 |
+|------|------|
+| 入会/听会/取纪要 | 能，但**不是自动**：消息驱动，必须有人发「监听会议」才起轮询（无 `vc.bot.meeting_activity` 推送灰度）。门槛：owner 要开「允许智能体入会」（否则 120002）；「XX和XX的通话」个人通话 bot 进不去 |
+| 身份归属 | **混合身份**：入会动作走 bot（Tenant Token，会里显示 Mark 42），拉字幕/读妙记/取纪要走用户的 user token。不是「一切记 bot 名下」 |
+| 宿主 | Hermes 进程 + cron 都在用户本机 Mac 上，关机/休眠即全停（证据：2026-09-25→10-05 网关日志十天零记录） |
+| 服务范围 | 技术上群里任何人都能 @ 到、能力同一条命；但凭证/记忆/Obsidian/user token 都是本人的，外人拿到的是「壳 + 他的数据面」 |
+| 会中语音 | 能力有（ByteView + 豆包 ASR/TTS），但 `mute_by_default` 铁律：只有会里有人喊「浪子」→ 90 秒窗口内才播 TTS，其余全丢。对外统一说「只能发文字和表情」 |
+| 会后闭环 | 飞书为主、本地只留一层：纪要不是我产出的（飞书自带妙记/智能纪要，我只读），我产出行动项清单 → 落用户日历「跟进：XXX」+ 建前查重 + 周末/节假日顺延 + 只 update 不重复 create → 文档建飞书文档/Wiki → 本地只留 Obsidian 沉淀 + 双库 rsync，不另存待办清单 |
+| 代发材料 | bot **不能**以用户身份给第三方发消息（230013）。默认路径：材料备好交本人发，或明确用 bot 身份发，不做「代他发」 |
+
 ## 排查清单
 
 | 问题 | 原因 | 解决 |
@@ -317,6 +331,10 @@ python3 ~/.hermes/skills/productivity/meeting-audit/scripts/poll.py <meeting_id>
 | 连续多个会议邀请 | 用户在同一会话中多次发起会议 | 直接 `+meeting-join` 新会议号，无需先离开上一个（上一个大概率已结束） |
 | **把案例当客户** | 从字幕内容推断客户名（如听到"拓竹"就以为客户是拓竹） | **铁律：客户名以会议标题为准，不从字幕内容推断。** 会议标题不写客户名就按标题出纪要，不要自作主张猜客户。案例引用 ≠ 客户身份 |
 | **ByteView 无音频流** | 会议未启用实时音频；或 Bot 入会后启动 Agent 太快 | 先 `sleep 3` 等 Bot 就绪再启动。5 秒内无 `raw msg` → 降级到字幕旁听+聊天框文字。个人通话（标题含「通话」）Bot 无法入会。 |
+| **`GET /vc/v1/realtime/endpoint` 报 121005 bot lacks permission** | 应用没拿到该会议的实时音频端点权限（会议创建时未启用/未授权给 bot） | 与「无 raw msg 流量」是**两种不同失败**：这个在**连 WebSocket 之前**就 401 了，`main.py` 直接 `Error: lark-cli 返回非零退出码 3` 退出，不会进入等待音频流逻辑。**改脚本改不动**，配置里也改不出来。→ 立刻降级：`listen_subtitles_bot.py <meeting_id>` 字幕旁听 + `lark-cli vc +meeting-message-send --as bot` 会中文字弹幕。被点名「浪子」时在弹幕回「开不了麦，用文字回」，然后正常打招呼。实测 2026-11-10 会议 834785757 |
+| **endpoint 拿到 websocket_url 但 26 秒后 `[bv] session closed reason=1`** | 端点授权通过 ≠ 音频真的可用。2026-11-10 会议 104318338 实测：`GET /realtime/endpoint` 正常返回 `websocket_url`，`[bv] raw msg` 也有流量，但 ASR 一直 `asr text text=`（空，内容在 `origin_text` 字段里），随后 session 直接关闭。 | **端点成功不能作为语音可用的判据**，必须看日志里有没有非空的 `asr text`。为空 → kill 掉 `main.py` 走字幕降级。另外 `forward_doubao_to_byteview` 的 wake_word 检测读的是空字段，**这种情况下点名也永远开不了麦**。 |
+| **跑完 `main.py` 后 Bot 被踢出会议（但仍 ongoing）** | `main.py` 自己会 `join_meeting`，其 ByteView 会话与 bot 在线态绑定；session closed / 进程被 kill 后 **bot 会从会议中消失**——`vc +meeting-list-active --as bot` 返回空，而 `--as user` 仍显示会议 ongoing，`+meeting-events --as bot` 返回 0 事件。 | 重新 `lark-cli vc +meeting-join --as bot --meeting-number <9位号>` 即可恢复；然后重启 `listen_subtitles_bot.py`（它会从已有行数继续追加，不覆盖）。**别再起 main.py**。 |
+| **`listen_subtitles_bot.py` 报 `bash: [N: 1] tcsetattr: Inappropriate ioctl for device` 后退出** | 后台 shell 包装器（`bash -lic`）被扰动/tty 丢失，子进程跟着死。 | 重启时用 `exec` 前缀让 python 直接接管进程：`exec python3.11 listen_subtitles_bot.py <meeting_id>`。已抓的字幕不丢，重启后自动续写。 |
 | **API超时误判会议结束** | `+meeting-events` API调用超时返回空，脚本累加到4轮判结束 | **已修复**：listen_subtitles.py 新增 `meeting_still_active()` 双重验证——连续空返回后先调 `+meeting-list-active` 确认会议是否真的不在活跃列表。会议还在则继续轮询（日志：[API 静默 N 轮，会议仍在进行]），真正不在了才判结束。最多等 12 轮确保收尾字幕不丢 |
 | **用户退会误判会议结束** | 用户中途退出，但会议还在进行（其他人在）。`--as user` 拉事件报 120003 + `meeting-list-active --as user` 返回空 → listen_subtitles.py 误判「会议结束」 | **改用 bot 模式** `listen_subtitles_bot.py <meeting_id>`：先 `+meeting-join --as bot` 入会，用 `--as bot` 拉事件，`status=="ended"` 判结束，用户离会不影响。见执行步骤第6条 |
 
@@ -580,7 +598,7 @@ Agent 给的材料往往是「大而全」的，但客户需求是具体的。Ag
 4. **代入计算器**：
    ```bash
    curl -s -X POST 'https://bytedance.aiforce.cloud/app/app_4k4ex0bzsderh/openapi/calculator/calculate' \
-     -H 'Authorization: Bearer <your-token-here>' \
+     -H 'Authorization: Bearer OokzHETWqITNmSpEokF16moXN_eomkNlXp7iQLx1_Xs' \
      -d '{"purchaseType":"addon","unitPrice":"<price>","quantity":<N>,"effectiveDate":"<today>","expiryDate":"<end>"}'
    ```
    - `addon` 公式：单价 × 席位 × (剩余天数/365)
