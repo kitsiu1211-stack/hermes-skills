@@ -18,6 +18,8 @@ Diagnose and fix failed scheduled jobs (cron). Trigger: user forwards a cron fai
 
 Also use this skill for **long-running background watcher / daemon lifecycle** — anything started detached and expected to keep running across the session (meeting `poll.sh`, `meeting_radar.py`, log tails, alerters, watchdogs). Trigger: "我改了那个脚本但它没生效", "预警里少了我刚才说的那件事", "重启一下那个监听", or any time you just edited the source of a process that is *already running*. See "长跑 watcher 改完代码后" below — the restart procedure is not optional.
 
+And use it for the **反直觉的相反症状**——你按用户要求停掉一个动作（退会 / 关监听 / 停搜索），**几秒后它自己又回来了**，用户第二次催同一句话。这通常不是脚本 bug，是「kill 后台进程 → gateway 推退出通知 → 唤醒原会话 → 会话重跑剧本」的通知回路，叠加一个只看用户状态、不看自身状态的守护脚本。正确顺序（先 `hermes pause` 冻结 turn，再杀整棵进程树，再验证 2-3 分钟，最后修守护脚本的退出条件）见 "⚠️ 坑五" 一节。**不要反复 kill，越杀越重入。**
+
 And use it for **rule-alert quality feedback** — the user replies to a pushed alert with "这个消息很模糊" / "看不懂" / "这算什么商机". That is a defect report on the rule layer (or on the alert's rendering), not a request for an explanation: fix the rule/format, replay-verify, restart. See "坑三" below and `references/rule-alert-tuning.md`.
 
 And use it for the **reverse** — the user says "关闭掉吧" / "帮助不大" / "噪音很大" / "别推了" about a running feature. That is a decommission, not a tuning request; do NOT answer it by offering to adjust thresholds. Five-step teardown (reverse the default, keep the code, sync the docs, sweep cron, name what did NOT change) in "反向操作：用户说「关掉它」" below and `references/feature-decommission.md`.
@@ -239,8 +241,64 @@ bash "$POLL" "$MID" "$TITLE" > /tmp/poll_<mid>.log 2>&1
 
 **通用原则**：任何「预期长时间运行」的进程，输出一律落文件，**永远不要管道给可能提前退出的命令**（`head` / `head -n` / 带 `-m` 的 grep / 分页器）。要看实时进度就另起一条 `tail -f` 或 `tail -20`。
 
-## 反向操作：用户说「关掉它」——功能下线五步（NEW — 2026-10-26）
+## ⚠️ 坑五：杀掉后台进程，反而把「入会/动作」重新触发了（NEW — 2026-11-10，最反直觉的一条）
 
+场景：用户说「你退出会议」。你 `+meeting-leave` + `kill` 监听进程 → bot 几秒后又回到会里 → 用户第二次说「你退出会议，不要进入了」。
+
+**这不是脚本 bug，是 Hermes 的通知回路。** 链条：
+
+1. 后台进程被你在会话外 kill（SIGTERM）
+2. gateway 检测到它退出，**向启动它的那个会话推一条 user-role 消息**：`[IMPORTANT: Background process proc_xxx exited (exit code 143, SIGTERM)...`
+3. 那条消息唤醒会话 → 会话按自己的剧本**重新入会 + 重启监听**
+4. 若还有守护脚本（`run_listener_supervisor.sh` 这类 `while true`），它会无限重启监听
+
+**所以「杀」在某些场景下等于「按了重来」。** 判据：`grep -a "<session_id>" ~/.hermes/logs/agent.log | grep turn_context | tail` 看到 `Background process ... exited` 触发的 turn，就是这条回路。
+
+### 正确顺序（顺序错了就无限循环）
+
+1. **先冻结新 turn**，再动进程：
+   ```bash
+   hermes pause --reason "用户要求停止重入"   # 写 ~/.hermes/ESTOP，冻结新 turn / cron / kanban dispatch
+   ```
+   注意：`pause` 只挡**新** turn，in-flight 的还在跑，不会误杀。
+2. **一次性杀掉整棵进程树**（supervisor → bash → worker），别只杀最里层：
+   ```bash
+   ps -o pid,ppid,command -ax | grep -E "run_listener_supervisor|listen_subtitles|meeting_chat_watch" | grep -v grep
+   kill -9 <worker> <bash> <supervisor>
+   ```
+3. **退会**：`lark-cli vc +meeting-leave --as bot --meeting-id <长ID>`
+4. **验证要轮询够久**（≥2-3 分钟），单次检查会漏（守护脚本 3 秒后就重启）：
+   ```bash
+   for i in $(seq 1 10); do sleep 12; \
+     echo "$(date +%H:%M:%S) procs=$(ps ax | grep -E 'A|B' | grep -v grep | wc -l) \
+     state=$(lark-cli vc +meeting-events --as bot --meeting-id <ID> --page-size 1 --json 2>&1 | grep -oE 'bot is not in the meeting|"status": "[a-z]*' | head -1)"; done
+   ```
+5. **恢复**：`hermes resume`（UNLESS 恢复后立刻重入，说明还有存活的 supervisor，回第 2 步）
+6. **最后修根因**，否则下次照旧。
+
+### 根因修复：给守护脚本加「主进程已不该在」的退出条件
+
+典型 bug：supervisor 只用**用户身份**判断会议是否结束（`meeting-list-active --as user`）。用户还在会里、bot 已经退了 → 判定「会议还活着」→ 无限重启监听 → 无限重入。
+
+修法：循环开头加一条**按 bot 身份**的退出检查（bot 不在会里就别再拉）：
+
+```bash
+if lark-cli vc +meeting-events --as bot --meeting-id "$MEETING_ID" --page-size 1 --format json 2>/dev/null \
+     | grep -q "bot is not in the meeting"; then
+  echo "[supervisor] bot not in meeting, stopping $(date '+%F %T')" >> "$LOG"
+  exit 0
+fi
+```
+
+改完必须 `bash -n <脚本>` 验语法。
+
+### 配套判据
+
+- **`bot is not in the meeting`** 才是「真的退出了」的**唯一**铁证（`+meeting-events --as bot`）。`+meeting-list-active --as bot --user-id ou_xxx` 会返回空列表（它不是查 bot 是否在会，别拿它当验证）；`--as user` 查的是用户的会，跟 bot 无关。
+- 用户说「退出会议」时，**一次做成**才算做完。反复回弹到第二次被同一句话催，是这一轮最严重的问题——第 4 步的轮询验证不能省。
+- 那个被唤醒的会话往往已经挂着一整天（本案例 10:48 起的会话到 19:14 还在待命）。收尾时顺手看一眼 `~/.hermes/processes.json`，确认没有遗留的后台进程登记项。
+
+## 反向操作：用户说「关掉它」——功能下线五步（NEW — 2026-10-26）
 场景：用户对已经跑起来的功能说「关闭掉吧，帮助不是很大，而且噪音很大」。这跟「调规则」是两条完全不同的路，**别默认走调参那条**。
 
 ### 先分清用户要哪一种
