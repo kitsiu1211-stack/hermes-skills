@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<!-- 闭环路径图骨架（已跑通、已交付）。
+     版式：5 个单字圆节点 + 一条曲线 + 外侧虚线回环 + 卡点标注 + 结论区。
+     换内容只改 6 处：
+       1) .kicker / h1 / .sub          标题区
+       2) 五个 <circle> 的汉字          路径摘要（单字动词）
+       3) 每个圆下面三行 text           标题 ≤8 字 / 注解两行各 ≤14 字 / 动作一行
+       4) 砖红那个 circle                全图只许一个，放关键动作那步
+       5) 卡点标注 + 竖虚线              标在真正失速的那一步之前，≤7 字
+       6) .tail 的 big + expl            结论一句 + 两行解释
+     出图：node ~/.hermes/skills/creative/framework-poster/scripts/shot.js loop-poster.html out.png 1240 2
+     硬约束：全文 ≤300 字；SVG text 必须单行书写；回环走 x=24 / x=1104 外侧绕。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1240px; background:#F6F2EA; color:#1B1A17;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased; }
+  .page { padding:60px 58px 46px; position:relative; }
+  .page::before{ content:""; position:absolute; inset:0;
+    background-image:radial-gradient(#D9D1C2 0.7px, transparent 0.7px);
+    background-size:22px 22px; opacity:.32; pointer-events:none; }
+  .page > * { position:relative; }
+  .kicker { font-size:12px; letter-spacing:.26em; color:#8A8272; font-weight:700; }
+  h1 { font-size:56px; line-height:1.2; letter-spacing:-1px; font-weight:800; margin-top:16px; }
+  h1 em { font-style:normal; color:#B4472A; }
+  .sub { margin-top:18px; font-size:17px; line-height:1.7; color:#4A453B; }
+  .sub b { color:#1B1A17; }
+  svg { display:block; width:100%; margin-top:10px; }
+  svg text { font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif; }
+  .tail { margin-top:6px; display:flex; gap:34px; align-items:flex-start;
+          border-top:3px solid #1B1A17; padding-top:22px; }
+  .tail .big { font-size:26px; font-weight:800; line-height:1.5; width:520px; flex:none; letter-spacing:-.4px; }
+  .tail .big em { font-style:normal; color:#B4472A; }
+  .tail .expl { font-size:13.5px; line-height:1.85; color:#4A453B; flex:1; padding-top:4px; }
+  .tail .expl b { color:#1B1A17; }
+  .foot { margin-top:24px; display:flex; justify-content:space-between;
+          font-size:11px; color:#948C7B; letter-spacing:.05em; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="kicker">{{KICKER}} &nbsp;·&nbsp; {{副标题}}</div>
+  <h1>{{标题第一行}}<br>{{标题第二行，一个词用 <em>砖红</em>}}</h1>
+  <div class="sub">
+    {{一句反常识开路}}。<br>
+    <b>{{加粗那句，是全图的论点}}</b>
+  </div>
+
+  <svg viewBox="0 0 1124 400" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0,1 L9,5 L0,9 z" fill="#B4472A"/>
+      </marker>
+    </defs>
+
+    <!-- 主路径：圆压在这条线上 -->
+    <path d="M112,86 Q224,126 337,86 Q449,126 562,86 Q674,126 787,86 Q899,126 1012,86"
+          fill="none" stroke="#1B1A17" stroke-width="7" stroke-linecap="round"/>
+
+    <!-- 卡点标注：压在两个圆的空隙（约 117px）上方，文字必须单行、≤7 字 -->
+    <text x="449" y="46" text-anchor="middle" font-size="11.5" font-weight="800" fill="#B4472A" letter-spacing="0.5">{{九成的人卡在这}}</text>
+    <line x1="449" y1="54" x2="449" y2="78" stroke="#B4472A" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+    <!-- 回环：必须从外侧 x=24 / x=1104 绕，别走节点正下方 -->
+    <path d="M1066,86 L1096,86 Q1104,86 1104,94 L1104,320 Q1104,330 1094,330 L32,330 Q24,330 24,320 L24,94 Q24,86 32,86 L50,86"
+          fill="none" stroke="#B4472A" stroke-width="3" stroke-dasharray="9 7" marker-end="url(#ah)"/>
+    <text x="562" y="360" text-anchor="middle" font-size="13" font-weight="700" fill="#B4472A" letter-spacing=".5">{{回到第一步，但位置不一样了}}</text>
+
+    <!-- 01 -->
+    <circle cx="112" cy="86" r="54" fill="#1B1A17"/>
+    <text x="112" y="102" text-anchor="middle" font-size="40" font-weight="800" fill="#F6F2EA">{{找}}</text>
+    <text x="112" y="184" text-anchor="middle" font-size="21" font-weight="800" letter-spacing="-.3">{{标题 ≤8 字}}</text>
+    <text x="112" y="212" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第一行}}</text>
+    <text x="112" y="232" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第二行}}</text>
+    <text x="112" y="262" text-anchor="middle" font-size="11.5" fill="#8A8272">{{当天能做的动作}}</text>
+
+    <!-- 02 -->
+    <circle cx="337" cy="86" r="54" fill="#1B1A17"/>
+    <text x="337" y="102" text-anchor="middle" font-size="40" font-weight="800" fill="#F6F2EA">{{选}}</text>
+    <text x="337" y="184" text-anchor="middle" font-size="21" font-weight="800" letter-spacing="-.3">{{标题}}</text>
+    <text x="337" y="212" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第一行}}</text>
+    <text x="337" y="232" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第二行}}</text>
+    <text x="337" y="262" text-anchor="middle" font-size="11.5" fill="#8A8272">{{动作}}</text>
+
+    <!-- 03：砖红，全图唯一，放关键动作 -->
+    <circle cx="562" cy="86" r="54" fill="#B4472A"/>
+    <text x="562" y="102" text-anchor="middle" font-size="40" font-weight="800" fill="#F6F2EA">{{用}}</text>
+    <text x="562" y="184" text-anchor="middle" font-size="21" font-weight="800" letter-spacing="-.3">{{标题}}</text>
+    <text x="562" y="212" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第一行}}</text>
+    <text x="562" y="232" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第二行}}</text>
+    <text x="562" y="262" text-anchor="middle" font-size="11.5" fill="#8A8272">{{动作}}</text>
+
+    <!-- 04 -->
+    <circle cx="787" cy="86" r="54" fill="#1B1A17"/>
+    <text x="787" y="102" text-anchor="middle" font-size="40" font-weight="800" fill="#F6F2EA">{{留}}</text>
+    <text x="787" y="184" text-anchor="middle" font-size="21" font-weight="800" letter-spacing="-.3">{{标题}}</text>
+    <text x="787" y="212" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第一行}}</text>
+    <text x="787" y="232" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第二行}}</text>
+    <text x="787" y="262" text-anchor="middle" font-size="11.5" fill="#8A8272">{{动作}}</text>
+
+    <!-- 05 -->
+    <circle cx="1012" cy="86" r="54" fill="#1B1A17"/>
+    <text x="1012" y="102" text-anchor="middle" font-size="40" font-weight="800" fill="#F6F2EA">{{再}}</text>
+    <text x="1012" y="184" text-anchor="middle" font-size="21" font-weight="800" letter-spacing="-.3">{{标题}}</text>
+    <text x="1012" y="212" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第一行}}</text>
+    <text x="1012" y="232" text-anchor="middle" font-size="12.5" fill="#4A453B">{{注解第二行}}</text>
+    <text x="1012" y="262" text-anchor="middle" font-size="11.5" fill="#8A8272">{{动作}}</text>
+  </svg>
+
+  <div class="tail">
+    <div class="big">
+      {{结论第一句}}<br>{{结论第二句，一个词用 <em>砖红</em>}}
+    </div>
+    <div class="expl">
+      {{为什么大多数人卡住，一句}}<br>
+      <b>{{把五个字连起来复述一遍，加一句量化（走完一圈多久 / 第二圈多快）}}</b>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>{{年份}} &nbsp;·&nbsp; {{署名}}</span>
+    <span>{{适用范围}}</span>
+  </div>
+
+</div>
+</body>
+</html>
