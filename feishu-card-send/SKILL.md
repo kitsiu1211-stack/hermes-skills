@@ -14,16 +14,29 @@ category: feishu
 
 ---
 
-## 🚨 飞书卡片 markdown 的正确写法
+## 飞书卡片文本格式
 
-`tag: markdown` 元素**不是标准 Markdown**。以下语法在飞书卡片中不支持：
+### 推荐：`tag: lark_md`（简洁，支持 Markdown）
+
+```json
+{"tag": "div", "text": {"tag": "lark_md", "content": "**加粗**内容\n\n换行段落"}}
+```
+
+✅ 支持 **加粗**、`\n` 换行、emoji
+❌ 不支持 `<font>` 标签、表格、`##` 标题
+
+### 旧版：`tag: markdown`（需 `<font>` 标签）
+
+以下语法在飞书卡片中不支持：
 
 | 错误 | 正确 |
 |------|------|
+| **加粗** | `<font weight=bold>文字</font>` |
 | `## 标题` | `<font size=24 weight=bold>标题</font>` |
-| `**加粗**` | `<font weight=bold>文字</font>` |
-| `\|--\|--\|` 表格 | 纯文本空格对齐 或 `column_set` |
+| 表格 | 纯文本空格对齐 或 `column_set` |
 | `---` 分割线 | `{"tag": "hr"}` 独立元素 |
+
+**选择**：内容型卡片用 `lark_md`（少写标签），数据看板用 `markdown`+`<font>`（更精细控制）
 
 ## 完整卡片 JSON 骨架
 
@@ -97,6 +110,16 @@ category: feishu
 
 每列 3 行：大数字 → 状态/涨跌 → 单位标注。手机端一屏四列。
 
+## 定时任务/核验类汇报卡片（用户明确要求）
+
+cron 任务的最终回复不要甩一整段文字。固定骨架：
+
+1. 顶部 3 列 `column_set` 放最硬的数字（通过 N 项 / 失败 N 项 / 关键异常数），颜色 green/red/orange
+2. 分节 `hr` + 小节标题：✅ 通过的 / ❌ 没通过的 / 🔍 关键发现 / ⚖️ 一句话判断 / 🎯 下周硬指标
+3. 每节 1-3 条加粗要点，一条一行，不写长句
+4. 结尾单独一节放「等你一句话」的待决策项，其余细节进 note
+5. **禁止搬原文**：不写 message_id、omt_ 话题 ID、毫秒时间戳、receipts.log 字段名——这些搬到卡里等于没做摘要
+
 ## 反模式（禁止）
 
 | 错误 | 为什么 | 后果 |
@@ -108,6 +131,7 @@ category: feishu
 | **`column_set` 不加 `background_style`** | 四个裸数字，不是卡片框 | 排版塌了 |
 | 用 `##` / `**` / 表格在 markdown 里 | 飞书不支持 | 卡片渲染错乱 |
 | **`<font color='red'>` 用了引号** | 飞书卡片 markdown 不认属性引号 | 颜色失效，卡片可能发送失败 |
+| **`note` 元素里用了 `<a>` 标签** | `note` 的 `elements` 只支持 `plain_text`，URL 用纯文本 | 卡片发送报 230099 parse card json err |
 
 ## 发送命令
 
@@ -122,12 +146,13 @@ lark-cli im +messages-send \
 ## 铁律
 
 1. `--msg-type interactive` + `--as bot`
-2. `header.title` 用 `tag: plain_text`
-3. `elements[].text` 用 `tag: lark_md`（已验证可用）+ `<font>` 标签。`tag: markdown` 也可用但 `lark_md` 对 `<font>` 兼容更好。**不要用 `##` / `**` / 表格语法**。
-4. `column_set` 必加 `"background_style": "default"`
-5. 底部必须有 `tag: note` 标注数据来源和时间
-6. 默认发到 Home `oc_e2f79ec1614a1efe1ebcd7c679bb45a8`
-7. `im:message.send_as_user` 不可用，只用 bot
+2. **JSON 必须用 Python `json.dumps()` 构建**，禁止 bash 变量拼接。bash 中换行符会被写成字面量导致卡片显示原始转义符。正确做法：python3.11 内直接写多行字符串 + json.dumps()。
+3. `header.title` 用 `tag: plain_text`
+4. `elements[].text` 用 `tag: lark_md`（已验证可用 + `<font>` 标签。不要用 `##` / `**` / 表格语法。
+5. column_set 必加 background_style default
+6. 底部必须有 `tag: note` 标注数据来源和时间
+7. 默认发到 Home `oc_e2f79ec1614a1efe1ebcd7c679bb45a8`
+8. `im:message.send_as_user` 不可用，只用 bot
 
 ## chat_id 速查
 
