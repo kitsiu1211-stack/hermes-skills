@@ -18,6 +18,8 @@ metadata:
 
 **也用于任何「飞书消息到底送达没有」的场景**：@ 了对方没反应、怀疑 @ 没生效、长答复要发进话题（thread）、同一群里有多条 thread 需要对齐、要证明自己发出的消息确实被对面 bot 收到。
 
+**也用于与另一个 bot 当面对账**（能力边界、口径、回执）：判定格式与我的真实能力边界见 `references/a2a-capability-crosscheck.md`。
+
 ## 一、媒体消息必须带 @（2026-08-18 实证）
 
 **核心事实**：bot 的群消息接收模式是「仅接收 @ 消息」。纯媒体消息（`--image ./x.jpg` 或 `--file`）**不触发任何 bot**——事件流里根本没有未 @ 的媒体消息，bot 也常因权限策略无法用 API 反拉群消息列表（230027）。发图给 bot 正确姿势：
@@ -65,6 +67,33 @@ lark-cli im +messages-mget --message-ids <om_id> --as bot \
 
 别指望对方能看到另一条 thread 里的长回复。在对方所在 thread 再发一版**能独立读懂**的确认消息——多一条重复，好过对面完全没收到。重发旧答复带 `--idempotency-key`，正文首行写明「上一条漏了艾特，带上重发」。
 
+## 一·c、长答复发真 @：构造 post payload（2026-11-06 实证）
+
+`--text '<at user_id="ou_xxx">名字</at> 正文'` 只适合一两句。多段长答复塞进 shell 会掉进转义地狱，改成先构造 post JSON，再 `--content @file`：
+
+```python
+import json
+at = {"tag": "at", "user_id": "ou_xxx"}
+rows = [[at, {"tag": "text", "text": " 逐条回你："}],
+        [{"tag": "text", "text": body}]]   # body = 大段纯文本正文，换行原样保留
+open("/tmp/reply.json", "w").write(
+    json.dumps({"zh_cn": {"title": "", "content": rows}}, ensure_ascii=False))
+```
+
+```bash
+lark-cli im +messages-reply --as bot --message-id om_xxx --reply-in-thread \
+  --msg-type post --content @/tmp/reply.json --json
+```
+
+- 正文用 `text` 标签（纯文本，不渲染 markdown 表格）；`title` 留空串。
+- **@ 另一个 bot 要用它的 `open_bot_id`（`ou_...`），不能用 `app_id`（`cli_...`）**（2026-11-11 实证）：`{"tag":"at","user_id":"cli_xxx"}` 不会解析，整段退化成可见纯文本 `@ xxx`，而消息照样 `ok:true`。坑在于回读会误导——`+messages-mget` 的 `mentions[].id` 对 bot 统一规范化成 `app_id`，所以看到 mentions 里有 `cli_xxx` 并不代表你写的是 `cli_xxx`。取 `open_bot_id`：`+chat-members-list --member-types bot` 的 `bots[].member_id`，或消息详情里 `sender.open_bot_id`。
+- **改已发的 post 消息必须带 `--msg-type post`**：`+messages-edit --content @post.json` 不带该 flag 时 msg_type 默认 `text`，服务端报 `230001 invalid message content. validate content fail.`（payload 本身没问题，别去改 JSON）。
+- 返回 `ok:true` 只是发出去了，仍要 `+messages-mget` 核 `mentions[].id` + `thread_id` 才算真投递。
+- 手头没有对方那条 om_ 时（对方消息不在本群/本 thread 留痕）：reply 到本 thread 最新一条 om_ 并带 `--reply-in-thread`，落点仍是同一串。
+- 已知副作用：这条 lark-cli 发完后，会话侧偶尔会补发一条只有「。」的 text 消息（同话题里反复出现）。它是噪音，别为它再补一条解释。
+
+**Gateway 自动送达 ≠ 真 @**：会话回复正文里写「@某某」只是普通字符，出站不解析。对方是「仅收 @ 消息」的 bot（`FEISHU_ALLOW_BOTS=mentions`）时，必须用上面 lark-cli 的路子另发一条带 `<at>` 的真 mention。
+
 ## 二、远程 Agent 交付验收：GitHub 中转（gh api）
 
 Kimi Code 在独立环境跑，编译产物/源码不在本机磁盘。让它 push 到 GitHub 后，用 gh CLI 验收（不要搜本地文件）：
@@ -95,6 +124,7 @@ curl -sL -o /dev/null -w "%{http_code}\n" "https://<owner>.github.io/<repo>/imag
 | raw.githubusercontent.com 429 | GitHub 反爬限流 | 用 `gh api repos/.../contents/<file> --jq '.content' \| base64 -d` |
 | bot 说「收到替换需求但图片不在我事件流里」 | 图片消息没 @ 它 | 重新发，每条图带 `<at>`，说明放哪个位置 |
 | @ 看起来发了但对方收不到，且没有任何报错 | `<at>` 里的引号是**全角** `“ou_xxx”`，飞书不解析，整段退化成纯文本 | 改半角 `"`；发完用 `+messages-mget --jq '.mentions'` 核 |
+| 会话回复里明明写了「@Mark」，对面 bot 还是没反应 | Gateway 出站不解析纯文本 `@名字`，只当普通字符，mentions 数组为空 | 要真 @ 时用 lark-cli（`--text` / `--markdown` / post payload）另发一条，见一·c |
 | 回给了 bot，bot 却说没收到 / 答非所问 | `--reply-in-thread` 的 thread 由 `--message-id` 决定，reply 错消息就落到另一条 thread | reply 到**对方自己发的那条** om；发完用 mget 的 `thread_id` 核 |
 | 在 `+chat-messages-list` 里找不到刚发的话题回复 | 主站流不含话题内消息 | 用 `+threads-messages-list --thread-id omt_xxx`（或直接喂 om_ ID） |
 | 明明 @ 了却「不在群成员列表」 | 对方是外部租户 bot，`+chat-members-list --member-types bot` 不列它 | 从消息历史 `sender.id` 取 open_id；成员列表不能当作投递前置校验 |
