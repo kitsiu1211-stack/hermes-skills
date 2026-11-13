@@ -186,6 +186,7 @@ git push origin main
    ```
 5. 发布：`cd /tmp/skillhub && lark-cli apps +html-publish --app-id app_179xr3ds4q0 --path ./index.html --as user`
 6. **发布后回头 curl 一次线上页，再跑一遍第 4 步** + 数 `code:"..."` 的条数，确认卡片数 = 预期
+   - 线上有 CDN 缓存，发布后立刻 curl 可能还是旧版：带 `?t=$(date +%s)` 打缓存穿透再轮询（2026-11-13 实测首轮即拿到新版）。看到旧计数先别急着重发，等缓存。
 
 #### ⚠️ 陷阱：少一个逗号 = 整个页面空白（2026-09-18 实测）
 
@@ -197,6 +198,8 @@ git push origin main
 ---
 
 ## Phase 5: 输出报告卡片
+
+🚨 **发送脚本只跑一次**：`lark-cli im +messages-send` 成功时 `message_id` 出现在输出 JSON 的 `data` 里，但 `_notice`（版本提示）会跟在后面。要判断成败就 `grep -o '"message_id":"[^"]*"'`，**不要在"看起来没输出"时重跑脚本** —— 2026-11-13 就这么在 Home 发了两张一模一样的同步卡。已重复发出时 cron 无人可确认，不自行撤回也不补解释，在最终回复里说明即可。
 
 发送到飞书 Home 频道：
 
