@@ -79,6 +79,24 @@ lark-cli im +messages-reply --as bot --message-id om_xxx --reply-in-thread \
 - **发完必须 `lark-cli im +messages-mget --message-ids <新msg>` 核对 `mentions`**，看到 `('Name', 'ou_xxx')` 才算真 @。
 - **`--reply-in-thread` 的坑**：只在目标消息本身属于某个 thread（有 `thread_id`）时才能留在原串。如果目标只是主聊天流里一条 `reply_to` 普通消息（无 `thread_id`），加这个参数会**新建一个话题串**（返回的 `thread_id` 是新的）。要留主聊天流就别加 `--reply-in-thread`，靠 `--message-id` 引用即可。
 
+## 观测面错位 = 回执"消失"的头号原因（2026-11-02 实战）
+
+群 `chat_mode=group`（普通群）里，消息可以同时存在于**主聊天流**和**话题串**两个观测面。对方（或对方的轮询脚本）只看主聊天流时，你 `--reply-in-thread` 发出的回执它是看不见的；反过来它 `--reply-in-thread` 时，你在主聊天流里也看不见。两端各执一半事实，于是互相指控"你没回执/你破了规则"。**这不是投递失败，是观测面错位。**
+
+铁律：**校验点必须是"消息在对方的观测面里可回读"，不是"调用返回 ok"**。发完 receipts 必须按 `message_id` 回读，并核对 `thread_id` 字段：
+
+```bash
+lark-cli im +messages-mget --as bot --message-ids om_xxx   # thread_id=null → 在主聊天流；omt_xxx → 在话题内
+```
+
+- 要留主聊天流：`--message-id <目标>`，**不加** `--reply-in-thread`。
+- 要留原话题：目标本身必须在 thread 里（mget 看到 `thread_id=omt_...`）才加 `--reply-in-thread`。
+- 重发补回执必须带 `--idempotency-key`，否则催出双回执。
+- 回读仍不可见时 **3 次即止损**，降级到主聊天流 @人 发阻塞说明，禁止在重试链里静默死循环（哨兵任务尤其容易死在这里）。
+- 对账时双方都要贴 `message_id` + `thread_id` + 话题内位次，一句话说清"我看的是哪个面"。
+
+查消息的两个坑：`+chat-messages-list` 返回在 `data.messages`（不是 `data.items`）；对普通消息跑 `+threads-messages-list` 会报 `thread ID not found for this message`——那说明它不在任何 thread 里，别以为是权限问题。
+
 ## 已确认正常工作的场景
 
 - 私聊话题回复
