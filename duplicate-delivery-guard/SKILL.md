@@ -95,5 +95,6 @@ lark-cli im +messages-send --chat-id oc_xxx --as bot \
 
 ## 案例
 
+- `references/no-content-platform-events.md` — `reaction:added/removed:Typing` 这类**无正文事件不是请求**：不调工具、不排查投递、整串只回一次（或直接静默）。含 2026-11-09「每条都回一个『在』」刷屏踩坑。
 - `references/meeting-invite-double-delivery.md` — 2026-10-13 实测：同一会议邀请并发投递两个会话，A 已出卡片+跟进日程，B 差点重复；含命令与时间线。
 - 2026-10-14 再次实测（更隐蔽的变体）：新会话只收到「第二场会议邀请」，看起来是干净的新任务，但**兄弟会话正在并行处理同一场会**——它 18:51 还顺手 `kill` 掉了新会话的 `poll.sh`（新会话因此收到 SIGTERM 通知，极易误判为自己出错）。实际查重三处全部命中：日历已有 3 条「跟进：疆海…」、Home 群 18:52 已发 3 张纪要卡片、`session_search("疆海")` 命中兄弟会话。**只看进程/只看 SIGTERM 会得出完全相反的结论**：进程消失 ≠ 任务失败，可能是交付完成后被清理。查重永远以产出物（日历 / 群消息 / 会话库）为准。
